@@ -10,6 +10,7 @@ export const LAMPS = [
 // Original scene. All dimensions are metres. Textures stay local; no external assets.
 export function buildWorld(textures = {}) {
   const root = new T.Group(), colliders=[], materials={}, parts=[], lamps=[];
+  let section='architecture';
   const ambient = new T.AmbientLight(0xc0bc9d, .23);
   root.add(ambient);
   const specs={};
@@ -27,13 +28,13 @@ export function buildWorld(textures = {}) {
   }
   function mesh(g,m,pos=[0,0,0],rot=[0,0,0],parent=root,shadow=true){
     const o=new T.Mesh(g,materials[m]);o.position.set(...pos);o.rotation.set(...rot);
-    o.castShadow=shadow;o.receiveShadow=!specs[m].emissive;parent.add(o);parts.push(o);return o;
+    o.userData.section=section;o.castShadow=shadow;o.receiveShadow=!specs[m].emissive;parent.add(o);parts.push(o);return o;
   }
   function box(m,w,h,d,x,y,z,rot=0,parent=root,shadow=true){
     const g=new T.BoxGeometry(w,h,d); const uv=g.attributes.uv;
     // Continuous texel density: approximately 96 pixels per metre on most surfaces.
     if(m!=='decals'){
-      const tile=m==='floor'?1.4:m==='concrete'||m==='ceiling'?1.9:m==='wood'?1.0:1.25;
+      const tile=m==='floor'?1.4:m.startsWith('concrete')||m==='ceiling'?1.9:m==='wood'?1.0:1.25;
       for(let i=0;i<uv.count;i++){
         const face=(i/4)|0; const su=face<2?d:w,sv=face>=2&&face<4?d:h;
         uv.setXY(i,uv.getX(i)*Math.max(.2,su/tile),uv.getY(i)*Math.max(.2,sv/tile));
@@ -92,7 +93,8 @@ export function buildWorld(textures = {}) {
   plate(1,2,.46,.46,-1.06,1.65,-.133,[0,Math.PI,0]);
   for(const z of [-6.22,6.22])solid(0,z,6.4,.2,0,'outer-wall');
   for(const x of [-3.10,3.10])solid(x,0,.2,12.5,0,'outer-wall');
-  // Open door: the steel slab remains fixed at 94 degrees, against the second room.
+  section='door';
+// Open door: the steel slab remains fixed at 94 degrees, against the second room.
   const door=group(.91,-.08,-Math.PI/2-.07);
   box('rust',1.51,2.08,.085,-.755,1.05,0,0,door);
   box('green',1.29,1.81,.018,-.755,1.05,.052,0,door);
@@ -106,7 +108,8 @@ export function buildWorld(textures = {}) {
   solid(dc.x,dc.z,1.51,.10,door.rotation.y,'open-door');
   box('wood',.12,.08,.18,1.08,.04,-1.55);
 
-  // Ceiling ribs, restrained conduit and one caged pendant per room.
+  section='architecture';
+// Ceiling ribs, restrained conduit and one caged pendant per room.
   for(const cz of [3.12,-3.12]){
     for(const z of [cz-1.7,cz+.65]){
       box('darkRust',6.05,.11,.15,0,2.59,z);
@@ -156,7 +159,8 @@ export function buildWorld(textures = {}) {
     }
     solid(x,z,.53,.55,angle,'chair');return g;
   }
-  // Work table: a shaped steel frame, separate boards and occupied working surface.
+  section='access';
+// Work table: a shaped steel frame, separate boards and occupied working surface.
   const table=group(-.62,2.50,-.07);
   for(let i=0;i<5;i++)box('wood',1.80,.055,.184,0,.79,-.384+i*.192,0,table);
   for(const z of [-.49,.49])box('rust',1.86,.09,.025,0,.765,z,0,table);
@@ -219,7 +223,8 @@ export function buildWorld(textures = {}) {
   for(const x of [-.13,.13])for(const z of [-.13,.13])beam('iron',[x,.03,z],[x,.44,z],.024,stool);
   solid(2.03,5.32,.43,.43,.34,'stool');
 
-  // Service room: heavy return pipe, tank and a small mechanical pump.
+  section='workshop-pipes';
+// Service room: heavy return pipe, tank and a small mechanical pump.
   beam('rust',[-2.81,.49,-5.82],[-2.81,2.10,-5.82],.16);
   beam('rust',[-2.81,2.10,-5.82],[2.72,2.10,-5.82],.16);
   for(const x of [-2.41,-.45,1.86]){
@@ -229,6 +234,7 @@ export function buildWorld(textures = {}) {
   beam('green',[2.70,.34,-5.82],[2.70,2.10,-5.82],.16);
   solid(-2.81,-5.70,.38,.60,0,'return-pipe');
   solid(2.70,-5.82,.34,.34,0,'return-pipe');
+section='workshop-tank';
   const tank=group(1.95,-4.75,0);
   cyl('green',.49,.49,1.50,0,1.03,0,12,tank);
   cyl('green',.32,.49,.20,0,1.88,0,12,tank);
@@ -243,10 +249,12 @@ export function buildWorld(textures = {}) {
   beam('brass',[1.95,1.56,-4.3],[1.95,1.56,-4.07],.038);
   cyl('iron',.115,.115,.07,1.95,1.56,-4.05,12,root,[Math.PI/2,0,0]);
   plate(2,0,.208,.208,1.95,1.56,-4.009);
+section='workshop-valve';
   // Valve wheel and spokes.
   beam('rust',[-2.81,1.13,-5.82],[-2.81,1.13,-5.49],.065);
   torus('red',.20,.025,-2.81,1.13,-5.41);
   for(let i=0;i<4;i++){let a=i*Math.PI/2;beam('red',[-2.81,1.13,-5.41],[-2.81+Math.sin(a)*.19,1.13+Math.cos(a)*.19,-5.41],.012);}
+section='workshop-pump';
   box('iron',1.65,.12,.74,-.49,.06,-5.11);
   cyl('green',.26,.26,.66,-.74,.40,-5.10,12,root,[0,0,Math.PI/2]);
   for(let i=0;i<9;i++)cyl('iron',.27,.27,.018,-1.02+i*.066,.40,-5.10,12,root,[0,0,Math.PI/2]);
@@ -256,12 +264,14 @@ export function buildWorld(textures = {}) {
   solid(-.49,-5.10,1.75,.90,0,'pump');
 
   // Crates/pallets, service shelf, floor grating and a coherent tool bench.
+section='workshop-pallet';
   const pallet=group(-1.94,-4.08,.08);
   for(const x of [-.4,.4])box('wood',.13,.11,1.1,x,.065,0,0,pallet);
   for(let i=0;i<5;i++)box('wood',1.08,.035,.19,0,.14,-.44+i*.22,0,pallet);
   carton(pallet,0,.16,.03,.88,.64,.82);
   carton(pallet,-.1,.80,.03,.62,.44,.59);
   solid(-1.94,-4.08,1.18,1.20,.08,'pallet');
+section='workshop-bench';
   const work=group(-2.60,-1.80,Math.PI/2);
   box('wood',1.4,.07,.56,0,.91,0,0,work);
   for(const x of [-.56,.56])for(const z of [-.21,.21])box('iron',.045,.9,.045,x,.45,z,0,work);
@@ -272,11 +282,13 @@ export function buildWorld(textures = {}) {
   box('iron',.065,.019,.10,.41,.96,.06,0,work);box('iron',.04,.019,.04,.46,.96,.10,0,work);box('iron',.04,.019,.04,.46,.96,.02,0,work);
   plate(1,1,.22,.31,.02,.95,.02,[-Math.PI/2,0,.1],work);
   solid(-2.60,-1.80,.65,1.52,0,'service-bench');
+section='workshop-shelf';
   // Short shelf with oil canisters.
   box('rust',.46,.04,1.18,2.72,1.35,-2.06);
   for(const z of [-2.48,-1.66])beam('iron',[2.9,.95,z],[2.52,1.33,z],.025);
   for(const z of [-2.4,-1.8])can(root,2.7,1.37,z,.095,.28,'red');
   solid(2.76,-2.06,.50,1.2,0,'oil-shelf');
+section='workshop-trim';
   box('iron',.8,.009,.52,.20,.009,-3.62);
   for(let k=0;k<11;k++)box('black',.029,.004,.46,-.15+k*.068,.017,-3.62);
   for(const x of [-.17,.56])for(const z of [-3.85,-3.4])cyl('iron',.018,.018,.012,x,.022,z,6);
@@ -295,24 +307,24 @@ export function buildWorld(textures = {}) {
     for(const y of [1.47,2.06])cyl('iron',.024,.024,.014,-2.93,y,z,6,root,[0,0,Math.PI/2]);
   }
   root.updateMatrixWorld(true);
-  return {root,materials,specs,parts,colliders,lamps,ambient};
+  return {root,materials,specs,parts,colliders,lamps,ambient,tools:{mesh,box,cyl,torus,beam,solid,group,plate,bolt,carton,can,bottle,chair}};
 }
 
 // Merge static objects by material and shadow behaviour. The meshes remain low-poly;
 // batching removes hundreds of CPU draw submissions on mobile devices.
 export function batchWorld(world) {
   world.root.updateMatrixWorld(true);const buckets=new Map();
-  for(const m of world.parts){const key=m.material.name+':'+Number(m.castShadow);if(!buckets.has(key))buckets.set(key,[]);buckets.get(key).push(m);}
+  for(const m of world.parts){const key=m.material.name+':'+Number(m.castShadow)+':'+(m.userData.zone||'legacy');if(!buckets.has(key))buckets.set(key,[]);buckets.get(key).push(m);}
   const merged=[];
   for(const items of buckets.values()){
-    const pos=[],nor=[],uv=[];
+    const pos=[],nor=[],uv=[],bounds=[];
     for(const m of items){
       const g=m.geometry.index?m.geometry.toNonIndexed():m.geometry.clone();g.applyMatrix4(m.matrixWorld);
-      pos.push(g.attributes.position.array);nor.push(g.attributes.normal.array);uv.push(g.attributes.uv.array);g.dispose();
+      pos.push(g.attributes.position.array);nor.push(g.attributes.normal.array);uv.push(g.attributes.uv.array);if(g.attributes.roomBounds)bounds.push(g.attributes.roomBounds.array);g.dispose();
     }
     const concat=a=>{const out=new Float32Array(a.reduce((n,v)=>n+v.length,0));let at=0;for(const v of a){out.set(v,at);at+=v.length;}return out;};
-    const g=new T.BufferGeometry();g.setAttribute('position',new T.BufferAttribute(concat(pos),3));g.setAttribute('normal',new T.BufferAttribute(concat(nor),3));g.setAttribute('uv',new T.BufferAttribute(concat(uv),2));g.computeBoundingSphere();
-    const m=new T.Mesh(g,items[0].material);m.castShadow=items[0].castShadow;m.receiveShadow=items[0].receiveShadow;world.root.add(m);merged.push(m);
+    const g=new T.BufferGeometry();g.setAttribute('position',new T.BufferAttribute(concat(pos),3));g.setAttribute('normal',new T.BufferAttribute(concat(nor),3));g.setAttribute('uv',new T.BufferAttribute(concat(uv),2));if(bounds.length)g.setAttribute('roomBounds',new T.BufferAttribute(concat(bounds),4));g.computeBoundingSphere();
+    const m=new T.Mesh(g,items[0].material);m.userData.zone=items[0].userData.zone;m.castShadow=items[0].castShadow;m.receiveShadow=items[0].receiveShadow;world.root.add(m);merged.push(m);
   }
   for(const m of world.parts){m.removeFromParent();m.geometry.dispose();}world.parts=merged;return world;
 }

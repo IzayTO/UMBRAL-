@@ -4,10 +4,10 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
   <meta name="theme-color" content="#151510">
-  <meta name="description" content="UMBRAL. Dos habitaciones, una puerta abierta y el sonido de lo que permanece. Una experiencia original de horror ambiental lo-fi.">
-  <title>UMBRAL — versión 1</title>
+  <meta name="description" content="UMBRAL V2. Una estación bajo el hielo. Horror ambiental lo-fi y un primer turno de investigación.">
+  <title>UMBRAL — versión 2</title>
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' fill='%23161511'/%3E%3Cpath d='M16 52V12h32v40M25 52V21h14v31' fill='none' stroke='%23aca07a' stroke-width='5'/%3E%3C/svg%3E">
-  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="style.css?v=2.0">
 </head>
 <body>
   <main id="experience" aria-label="Experiencia de horror ambiental UMBRAL">
@@ -15,6 +15,7 @@
     <div id="curtain" aria-hidden="true"></div>
     <div id="hud" hidden>
       <button id="pause" class="small-button" aria-label="Pausar y abrir ajustes">Ⅱ</button>
+      <button id="interact" hidden aria-label="Operar el equipo o salir de la consola">E · OPERAR</button>
       <div id="reticle" aria-hidden="true"></div>
       <div id="move-zone" aria-label="Joystick para caminar"><div id="stick"><span id="stick-knob"></span></div></div>
       <div id="hint" role="status"></div>
@@ -22,11 +23,11 @@
     <section id="menu" aria-label="Menú principal">
       <div class="menu-grain" aria-hidden="true"></div>
       <div class="menu-content">
-        <div class="edition"><span class="status-dot"></span> ESTUDIO AMBIENTAL <span class="edition-number">001</span></div>
+        <div class="edition"><span class="status-dot"></span> ESTUDIO AMBIENTAL <span class="edition-number">002</span></div>
         <h1>UMBRAL</h1>
         <p class="tagline">El ruido permanece.</p>
         <div class="fine-rule"></div>
-        <p id="intro" class="intro">Dos habitaciones.<br>La misma corriente eléctrica.</p>
+        <p id="intro" class="intro">Bajo el hielo.<br>La misma corriente eléctrica.</p>
         <button id="enter" class="primary" disabled><span id="enter-label">PREPARANDO</span><span aria-hidden="true">→</span></button>
         <button id="options" class="text-button" aria-expanded="false" aria-controls="settings">AJUSTES <span aria-hidden="true">+</span></button>
         <div id="settings" hidden>
@@ -36,13 +37,14 @@
           <label>IMAGEN <select id="quality" aria-label="Resolución"><option value="auto">ADAPTABLE</option><option value="detail">DETALLADA</option><option value="low">LIGERA</option></select></label>
           <label class="check-label">OSCILACIÓN AL CAMINAR <input id="bob" type="checkbox" checked></label>
           <label class="check-label">VARIACIÓN DE LAS LÁMPARAS <input id="flicker" type="checkbox" checked></label>
+          <button id="new-turn" class="text-button secondary" hidden>REINICIAR EL TURNO COMPLETO ↺</button>
           <button id="restart" class="text-button secondary" hidden>VOLVER AL PUNTO INICIAL ↺</button>
         </div>
-        <p id="controls" class="controls">W A S D &nbsp; CAMINAR<br>RATÓN &nbsp; MIRAR &nbsp; · &nbsp; ESC &nbsp; PAUSA</p>
+        <p id="controls" class="controls">W A S D &nbsp; CAMINAR<br>RATÓN &nbsp; MIRAR &nbsp; · &nbsp; ESC &nbsp; PAUSA<br>E &nbsp; OPERAR &nbsp; · &nbsp; J &nbsp; RECORDAR TAREA</p>
         <p class="sound-note">Mejor con audífonos, a volumen moderado.</p>
-        <p id="load-status" class="load-status" role="status" aria-live="polite">Preparando las habitaciones…</p>
+        <p id="load-status" class="load-status" role="status" aria-live="polite">Preparando la estación…</p>
       </div>
-      <div class="menu-footer"><span>UNA PUERTA ABIERTA</span><span>V 1.0</span></div>
+      <div class="menu-footer"><span>PRIMER TURNO</span><span>V 2.0</span></div>
     </section>
     <section id="fatal" hidden role="alert">
       <p class="edition">UMBRAL / NO SE PUDO INICIAR</p>
@@ -58,6 +60,6 @@
     if(location.protocol==='file:')window.umbralError('Abre esta experiencia desde la dirección HTTPS de GitHub Pages. La vista previa de Archivos del iPhone no ejecuta el juego.');
     window.addEventListener('error',function(e){if(!window.umbralReady&&e.message)window.umbralError('No se pudo cargar un archivo. Comprueba que hayas subido todos los archivos juntos y vuelve a abrir la página.');});
   </script>
-  <script type="module" src="game.js"></script>
+  <script type="module" src="game.js?v=2.0"></script>
 </body>
 </html>

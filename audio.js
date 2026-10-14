@@ -1,7 +1,9 @@
+import {zoneAt,LAMP_DATA} from './layout.js?v=2.0';
 // Procedural environmental sound. No music, downloaded recordings or jump cues.
 // AudioContext is only created inside the user's ENTRAR gesture.
 export class Atmosphere {
   constructor(){this.ctx=null;this.volume=.58;this.muted=false;this.active=false;this.nextEvent=9;this.elapsed=0;this.nodes=[];this.stepSide=1;}
+  configure(lamps){this.sources=lamps;}
   start(){
     if(!this.ctx){const C=window.AudioContext||window.webkitAudioContext;if(!C)return false;
       try{this.ctx=new C({latencyHint:'interactive'});this.build();}catch{this.ctx=null;return false;}}
@@ -42,7 +44,7 @@ export class Atmosphere {
       const o=c.createOscillator(),gain=c.createGain();o.type='sine';o.frequency.value=f;gain.gain.value=amp;o.connect(gain);gain.connect(filter);o.start();
     }
     filter.connect(g);g.connect(p);p.connect(this.master);g.connect(this.verb);
-    return {gain:g,filter,volume,pos};
+    return {gain:g,filter,volume,pos,panner:p};
   }
   applyVolume(){if(this.ctx)this.master.gain.setTargetAtTime(this.active&&!this.muted?this.volume:0,this.ctx.currentTime,.12);}
   setVolume(v){this.volume=Math.max(0,Math.min(1,v));this.applyVolume();}
@@ -56,8 +58,15 @@ export class Atmosphere {
     const breath=.76+.10*Math.sin(this.elapsed*.19)+.09*Math.sin(this.elapsed*.071+1.4);
     const quiet=(Math.sin(this.elapsed*.049+1.7)>.90)?.28:1;
     this.drone.gain.setTargetAtTime(.065*breath*quiet,now,.6);this.air.gain.setTargetAtTime(.035*quiet,now,.7);
+    const current=zoneAt(player.x,player.z)?.id;
+    if(this.elapsed>(this.nextSource||0)){
+      this.nextSource=this.elapsed+.4;
+      const sources=[...(this.sources||LAMP_DATA)].sort((a,b)=>Math.hypot(a.position[0]-player.x,a.position[2]-player.z)-Math.hypot(b.position[0]-player.x,b.position[2]-player.z)).slice(0,2);
+      this.hums.forEach((h,i)=>{const src=sources[i];h.pos=src.position;h.zone=src.zone;const p=h.panner;if(p.positionX){p.positionX.setTargetAtTime(h.pos[0],now,.25);p.positionY.value=h.pos[1];p.positionZ.setTargetAtTime(h.pos[2],now,.25);}else p.setPosition(...h.pos);});
+    }
+    this.air.gain.setTargetAtTime((current==='4'?.051:current==='8'?.023:.035)*quiet,now,.8);
     for(const h of this.hums){
-      const same=player.z*h.pos[2]>=0,door=Math.max(0,1-Math.abs(player.x-.1)/2.3),occ=same?1:.17+.23*door;
+      const same=current===h.zone,occ=same?1:.16;
       h.gain.gain.setTargetAtTime(h.volume*occ*(.96+.04*Math.sin(this.elapsed*1.2)),now,.3);
       h.filter.frequency.setTargetAtTime(same?900:190,now,.3);
     }
@@ -65,7 +74,7 @@ export class Atmosphere {
   }
   event(player){
     // Soft expansions in pipes, usually in the adjacent room, never in the player's face.
-    const c=this.ctx,t=c.currentTime,pos=[Math.random()>.5?-2.7:2.7,1.7,player.z>0?-4.8:5.8],p=this.spatial(...pos);
+    const c=this.ctx,t=c.currentTime,near=[...(this.sources||LAMP_DATA)].sort((a,b)=>Math.hypot(a.position[0]-player.x,a.position[2]-player.z)-Math.hypot(b.position[0]-player.x,b.position[2]-player.z)),src=near[Math.min(near.length-1,1+Math.floor(Math.random()*2))],pos=[src.position[0]+.6,1.7,src.position[2]],p=this.spatial(...pos);
     const g=c.createGain();g.gain.value=.50;p.connect(g);g.connect(this.master);p.connect(this.verb);
     const base=160+Math.random()*150,duration=1.5+Math.random()*1.2;
     for(const [mult,amp] of [[1,.016],[2.31,.008],[4.12,.0035]]){
@@ -75,8 +84,12 @@ export class Atmosphere {
     }
     setTimeout(()=>{p.disconnect();g.disconnect();},(duration+.2)*1000);
   }
+  signal(){
+    if(!this.ctx||!this.active)return;
+    const c=this.ctx,t=c.currentTime,o=c.createOscillator(),g=c.createGain();o.type='sine';o.frequency.value=720;g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(.012,t+.007);g.gain.exponentialRampToValueAtTime(.0001,t+.07);o.connect(g);g.connect(this.master);o.start(t);o.stop(t+.08);o.onended=()=>{o.disconnect();g.disconnect();};
+  }
   step(player){
-    if(!this.ctx||!this.active)return;const c=this.ctx,t=c.currentTime,metal=Math.abs(player.z)<.38||(player.z<-3.35&&player.z>-3.9&&Math.abs(player.x-.2)<.55);
+    if(!this.ctx||!this.active)return;const c=this.ctx,t=c.currentTime,metal=zoneAt(player.x,player.z)?.id.startsWith('h');
     const src=c.createBufferSource();src.buffer=this.shortNoise;src.playbackRate.value=.85+Math.random()*.28;
     const f=c.createBiquadFilter();f.type='lowpass';f.frequency.value=metal?1150:640;
     const g=c.createGain();g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(metal?.18:.13,t+.016);g.gain.exponentialRampToValueAtTime(.0001,t+.18);
