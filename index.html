@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+  <meta name="theme-color" content="#151510">
+  <meta name="description" content="UMBRAL. Dos habitaciones, una puerta abierta y el sonido de lo que permanece. Una experiencia original de horror ambiental lo-fi.">
+  <title>UMBRAL — versión 1</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' fill='%23161511'/%3E%3Cpath d='M16 52V12h32v40M25 52V21h14v31' fill='none' stroke='%23aca07a' stroke-width='5'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <main id="experience" aria-label="Experiencia de horror ambiental UMBRAL">
+    <canvas id="view" aria-label="Escena 3D en primera persona"></canvas>
+    <div id="curtain" aria-hidden="true"></div>
+    <div id="hud" hidden>
+      <button id="pause" class="small-button" aria-label="Pausar y abrir ajustes">Ⅱ</button>
+      <div id="reticle" aria-hidden="true"></div>
+      <div id="move-zone" aria-label="Joystick para caminar"><div id="stick"><span id="stick-knob"></span></div></div>
+      <div id="hint" role="status"></div>
+    </div>
+    <section id="menu" aria-label="Menú principal">
+      <div class="menu-grain" aria-hidden="true"></div>
+      <div class="menu-content">
+        <div class="edition"><span class="status-dot"></span> ESTUDIO AMBIENTAL <span class="edition-number">001</span></div>
+        <h1>UMBRAL</h1>
+        <p class="tagline">El ruido permanece.</p>
+        <div class="fine-rule"></div>
+        <p id="intro" class="intro">Dos habitaciones.<br>La misma corriente eléctrica.</p>
+        <button id="enter" class="primary" disabled><span id="enter-label">PREPARANDO</span><span aria-hidden="true">→</span></button>
+        <button id="options" class="text-button" aria-expanded="false" aria-controls="settings">AJUSTES <span aria-hidden="true">+</span></button>
+        <div id="settings" hidden>
+          <label>VOLUMEN <input id="volume" type="range" min="0" max="100" value="58" aria-label="Volumen"></label>
+          <label>VISIBILIDAD <input id="brightness" type="range" min="80" max="145" value="105" aria-label="Visibilidad"></label>
+          <label>SENSIBILIDAD <input id="sensitivity" type="range" min="45" max="170" value="95" aria-label="Sensibilidad al mirar"></label>
+          <label>IMAGEN <select id="quality" aria-label="Resolución"><option value="auto">ADAPTABLE</option><option value="detail">DETALLADA</option><option value="low">LIGERA</option></select></label>
+          <label class="check-label">OSCILACIÓN AL CAMINAR <input id="bob" type="checkbox" checked></label>
+          <label class="check-label">VARIACIÓN DE LAS LÁMPARAS <input id="flicker" type="checkbox" checked></label>
+          <button id="restart" class="text-button secondary" hidden>VOLVER AL PUNTO INICIAL ↺</button>
+        </div>
+        <p id="controls" class="controls">W A S D &nbsp; CAMINAR<br>RATÓN &nbsp; MIRAR &nbsp; · &nbsp; ESC &nbsp; PAUSA</p>
+        <p class="sound-note">Mejor con audífonos, a volumen moderado.</p>
+        <p id="load-status" class="load-status" role="status" aria-live="polite">Preparando las habitaciones…</p>
+      </div>
+      <div class="menu-footer"><span>UNA PUERTA ABIERTA</span><span>V 1.0</span></div>
+    </section>
+    <section id="fatal" hidden role="alert">
+      <p class="edition">UMBRAL / NO SE PUDO INICIAR</p>
+      <h2>La imagen no responde.</h2>
+      <p id="fatal-message"></p>
+      <button class="primary" onclick="location.reload()">VOLVER A INTENTAR <span>↺</span></button>
+    </section>
+    <noscript>Activa JavaScript para entrar en las habitaciones.</noscript>
+  </main>
+  <script>
+    // Boot errors must stay visible, including unsupported module imports on file://.
+    window.umbralError=function(message){document.getElementById('fatal-message').textContent=message;document.getElementById('fatal').hidden=false;document.getElementById('menu').hidden=true;};
+    if(location.protocol==='file:')window.umbralError('Abre esta experiencia desde la dirección HTTPS de GitHub Pages. La vista previa de Archivos del iPhone no ejecuta el juego.');
+    window.addEventListener('error',function(e){if(!window.umbralReady&&e.message)window.umbralError('No se pudo cargar un archivo. Comprueba que hayas subido todos los archivos juntos y vuelve a abrir la página.');});
+  </script>
+  <script type="module" src="game.js"></script>
+</body>
+</html>
