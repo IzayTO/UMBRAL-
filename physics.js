@@ -4,6 +4,7 @@ export function resolvePosition(x,z,colliders,radius=.22){
   for(let pass=0;pass<4;pass++){
     let touched=false;
     for(const b of colliders){
+      if(b.enabled===false)continue;
       const c=Math.cos(b.angle),s=Math.sin(b.angle),dx=x-b.x,dz=z-b.z;
       let lx=c*dx-s*dz,lz=s*dx+c*dz;
       const hx=b.w/2,hz=b.d/2;

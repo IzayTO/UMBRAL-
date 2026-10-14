@@ -1,5 +1,6 @@
 import * as T from './three.module.min.js';
-import {lineBlocked} from './station.js?v=2.0';
+import {lineBlocked} from './station.js?v=3.0';
+import {consoleContent} from './console-content.js?v=3.0';
 const W=512,H=336,GREEN='#8caa79',DIM='#51664c',AMBER='#b5a474';
 const clock=s=>`${String(Math.floor(s/60)).padStart(2,'0')}:${String(Math.floor(s%60)).padStart(2,'0')}`;
 const wrap=(ctx,text,x,y,max=468,line=22)=>{let row='';for(const word of text.split(' ')){if(ctx.measureText(row+word).width>max&&row){ctx.fillText(row,x,y);y+=line;row='';}row+=word+' ';}if(row){ctx.fillText(row,x,y);y+=line;}return y;};
@@ -12,11 +13,11 @@ export class Terminals{
  }
  find(player){
   if(this.active)return this.active;const forward=this.camera.getWorldDirection(new T.Vector3());let best=null,score=0;
-  for(const t of this.world.terminals){const delta=t.target.clone().sub(this.camera.position),distance=Math.hypot(player.x-t.target.x,player.z-t.target.z),front=(player.x-t.target.x)*t.normal.x+(player.z-t.target.z)*t.normal.z;
+  for(const t of this.world.terminals){if(t.id==='analysis'&&!this.missions.state.analysisUnlocked)continue;const delta=t.target.clone().sub(this.camera.position),distance=Math.hypot(player.x-t.target.x,player.z-t.target.z),front=(player.x-t.target.x)*t.normal.x+(player.z-t.target.z)*t.normal.z;
    const dot=delta.normalize().dot(forward);if(distance<1.85&&front>.15&&dot>.72&&!lineBlocked(player,{x:t.target.x,z:t.target.z},this.world.walls)&&dot>score){best=t;score=dot;}}
   this.candidate=best;return best;
  }
- enter(t=this.candidate){if(!t||this.active)return;this.active=t;this.selected=0;this.openedAt=this.now||0;t.message='';document.body.classList.add('inspecting');this.callbacks.open();this.paint(t,this.now||0);}
+ enter(t=this.candidate){if(!t||this.active)return;if(t.id==='analysis'&&!this.missions.state.analysisUnlocked){this.callbacks.notice('Análisis requiere validar el expediente en Control.',8);return;}this.active=t;this.selected=0;this.openedAt=this.now||0;t.message='';document.body.classList.add('inspecting');this.callbacks.open();this.paint(t,this.now||0);}
  leave(resume=true){if(!this.active)return;this.active=null;document.body.classList.remove('inspecting');this.callbacks.close(resume);}
  focus(dt){
   if(!this.active)return;const t=this.active,cam=this.camera,aspect=innerWidth/innerHeight,fov=50,dist=Math.max(.68,Math.max(.56,.86/aspect)*.5/Math.tan(fov*Math.PI/360)*1.18),p=t.target.clone().addScaledVector(t.normal,dist);
@@ -25,7 +26,9 @@ export class Terminals{
  tick(t){this.now=t;if(t-this.lastPaint<.12)return;this.lastPaint=t;for(const term of this.world.terminals)if(term.screen.visible&&(term===this.active||t-(term.lastPaint||-10)>1.3)){this.paint(term,t);term.lastPaint=t;}}
  choose(i){const t=this.active,b=t?.buttons[i];if(!b)return;this.selected=i;t.messageUntil=(this.now||0)+6;
   if(b.action.startsWith('page:')){t.page=b.action.slice(5);t.message='';}
-  else {t.message=this.missions.act(b.action);if(['readings','hits','fit'].includes(b.action)&&this.missions.state.event)t.page=b.action;this.callbacks.tone();this.callbacks.save();if(b.action==='observe'&&this.missions.state.armed){this.leave();return;}}
+  else {t.message=this.missions.act(b.action);if(['readings','hits','fit'].includes(b.action)&&this.missions.state.event)t.page=b.action;
+   if(b.action.startsWith('history:'))t.page=b.action;
+   if(b.action==='health')t.page='health';if(b.action==='preliminary')t.page='candidate';this.callbacks.tone();this.callbacks.save();if(b.action==='observe'&&this.missions.state.armed){this.leave();return;}}
   this.paint(t,this.now||0);
  }
  paint(t,time){
@@ -36,38 +39,8 @@ export class Terminals{
   c.font='17px Courier New,monospace';c.fillStyle=GREEN;
   const line=(txt,y=87,color=GREEN)=>{c.fillStyle=color;c.fillText(txt,22,y);};
   const lines=(arr,y=87,step=23)=>arr.forEach((txt,i)=>line(txt,y+i*step));
-  if(t.page==='report'){
-   c.font='15px Courier New,monospace';
-   const text=s.observed?'El neutrino no se ve. Una interacción puede producir partículas cargadas. Al viajar más rápido que la luz EN EL HIELO (no en el vacío), emiten luz Cherenkov. Los sensores registran fotones; sus tiempos y cargas ayudan a estimar una trayectoria. Un candidato aún requiere descartar otros orígenes.':'Los módulos ópticos registran fotones. Los pulsos LED de posición y tiempo conocidos permiten comprobar su respuesta. Una coincidencia entre sensores puede ser un candidato, pero requiere análisis y rechazo de fondos.';
-   wrap(c,text,22,84,468,20);buttons=[['REGRESAR','page:home']];
-  }else if(t.id==='control'){
-   if(s.fault)lines(['! ADVERTENCIA / CANAL 17','Pérdida intermitente de sincronía.','DOM profundo: alimentación nominal.',s.diagnosed?'Receptor local: contacto inestable.':'Ejecuta diagnóstico del enlace.','Destino de mantenimiento: SERVIDORES'],87,23);
-   else lines(['ADQUISICIÓN EN VIGILANCIA',s.repaired?'Canal 17: receptor restablecido.':'Canales 01—24: nominales.','Fotomultiplicadores / red temporal',s.phase>=5?'Registro en OBSERVACIÓN (08).':s.calibrated?'Candidato en ANÁLISIS (06).':s.repaired?'Ejecuta CALIBRACIÓN (05).':'Esperando coincidencias de sensores.'],87,24);
-   buttons=[['DIAGNÓSTICO','diagnose'],['PRINCIPIO FÍSICO','page:report']];
-  }else if(t.id==='servers'){
-   lines(['RECEPTOR DE DATOS / CANAL 17',`Alimentación     ${s.power?'24.1 V / PRESENTE':'0.0 V / AISLADA'}`,`Conector        ${s.moduleSeated?'ASEGURADO':'PENDIENTE DE REVISIÓN'}`,`Sincronía       ${s.repaired?'ESTABLE':s.fault?'INTERMITENTE':'NOMINAL'}`],87,25);
-   line('Orden: aislar > reajustar > conectar',193,DIM);
-   buttons=[['AISLAR CANAL','isolate'],['REAJUSTAR MÓDULO','reseat'],['RESTABLECER','restore'],['FUNCIÓN DEL ENLACE','page:report']];
-  }else if(t.id==='calibration'){
-   const r=s.calibration;line('PULSOS DE REFERENCIA / LED',87);
-   lines([`Pulsos emitidos  ${s.job?.kind==='calibrate'?Math.floor((1-s.job.remaining/s.job.total)*10):r?.pulses||0} / 10`,`Respuestas      ${r?`${r.responses} / 10`:'SIN PRUEBA'}`,`Dispersión      ${r?.jitter!=null?r.jitter.toFixed(1)+' ns':'—'}`,`Validación      ${r?(r.passed?'ACEPTADA':'PENDIENTE'):'PENDIENTE'}`],115,23);
-   buttons=[['EJECUTAR PRUEBA','calibrate'],['QUÉ SE MIDE','page:report']];
-  }else if(t.id==='analysis'){
-   if(!s.event)lines(['SIN CANDIDATOS VALIDADOS','La adquisición necesita un enlace','estable y una calibración aceptada.','Completa el procedimiento en 05.'],87,25);
-   else if(t.page==='hits'||t.page==='fit'){this.graph(c,s.event,t.page==='fit');line(`${t.page==='fit'?'EJE PONDERADO':'SENSORES ACTIVADOS'}  /  ${s.event.id}`,85);c.font='12px Courier New,monospace';line(t.page==='fit'?`Residual geométrico: ${s.event.fit.residual.toFixed(1)} m · modelo simplificado`:'Tono = tiempo de llegada · tamaño = carga',215,DIM);}
-   else {const e=s.event;lines([`CANDIDATO ${e.id}`,`Sensores activos  ${e.hits.length} / 24`,`Ventana temporal  ${e.duration} ns`,`Carga integrada   ${e.charge} p.e.`,`Revisión          ${[1,2,4].filter(b=>s.review&b).length} / 3`],85,23);}
-   buttons=[['LECTURAS','readings'],['SENSORES','hits'],['TRAYECTORIA','fit'],['ENVIAR REGISTRO','send']];
-  }else if(t.id==='observation'){
-   lines(s.phase<5?['REGISTRO ÓPTICO / EN ESPERA','Recibe un candidato revisado','desde la consola de Análisis.','Hielo profundo. Visibilidad mínima.']:[`REGISTRO ${s.event?.id||'—'}`,s.observed?'REGISTRO CONSULTADO / ARCHIVADO':'CANDIDATO RECIBIDO',s.observed?'La explicación queda en el informe.':'Prepara la consulta y mira al hielo.','Representación artística de fotones,','no una imagen directa del neutrino.'],87,23);
-   buttons=[['CONSULTAR EVENTO','observe'],['INFORME CIENTÍFICO','page:report']];
-  }else if(t.id==='archive'){
-   if(t.page==='logs'){c.font='14px Courier New,monospace';(s.log.length?s.log.slice(-5):['00:00  Turno iniciado. Sin incidencias.']).forEach((txt,i)=>line(txt.slice(0,55),84+i*24));buttons=[['REGRESAR','page:home'],['INFORME','page:report']];}
-   else {lines(['ARCHIVO DE OPERACIONES','1979 / INSTALACIÓN EN SERVICIO','1983 / Sustitución de los receptores','1986 / Control de dispersión en hielo',`ACTUAL / ${s.log.length} registros de este turno`],87,23);buttons=[['BITÁCORA REAL','page:logs'],['NOTA CIENTÍFICA','page:report']];}
-  }else if(t.id==='workshop'){
-   lines(['BANCO DE CONTINUIDAD / REPUESTOS',s.benchTest?'Reserva comprobada: 0.3 ohm.':'Módulo de reserva sin comprobar.','El receptor en uso está en SERVIDORES.',s.diagnosed?'Contacto del canal 17 por reajustar.':'Consulta el estado en Control.'],87,25);
-   buttons=[['PROBAR REPUESTO','bench'],['NOTA DEL SISTEMA','page:report']];
-  }
-  if(s.job&&((s.job.kind==='reseat'&&t.id==='servers')||(s.job.kind==='calibrate'&&t.id==='calibration')||(s.job.kind==='bench'&&t.id==='workshop'))){
+  buttons=consoleContent(this,t,c,time,{line,lines,wrap,GREEN,DIM});
+  if(s.job&&((s.job.kind==='reseat'&&t.id==='servers')||(s.job.kind==='calibrate'&&t.id==='calibration')||(s.job.kind==='bench'&&t.id==='workshop')||(s.job.kind==='report'&&t.id==='analysis'))){
    c.fillStyle='#0b160e';c.fillRect(18,181,476,42);c.fillStyle=DIM;c.fillRect(22,203,466,6);c.fillStyle=GREEN;c.fillRect(22,203,466*(1-s.job.remaining/s.job.total),6);c.font='14px Courier New,monospace';c.fillText(`PROCEDIMIENTO ${Math.ceil(s.job.remaining)} s`,22,195);
   }
   if(t.message&&active&&!s.job&&time<(t.messageUntil||0)){c.fillStyle='#152318';c.fillRect(15,165,482,60);c.font='14px Courier New,monospace';c.fillStyle=AMBER;wrap(c,t.message,22,182,468,17);}
@@ -78,11 +51,12 @@ export class Terminals{
   c.fillStyle='rgba(0,0,0,.08)';for(let y=1;y<H;y+=3)c.fillRect(0,y,W,1);t.texture.needsUpdate=true;
  }
  graph(c,event,fit){
-  const proj=p=>[255+p[0]*.38+p[2]*.18,147-p[1]*.26+p[2]*.04];
+  const proj=p=>[255+p[0]*.60+p[2]*.24,151-p[1]*.31+p[2]*.035];
   c.strokeStyle='#233e2a';c.lineWidth=1;
   for(let x=125;x<=405;x+=35){c.beginPath();c.moveTo(x,99);c.lineTo(x-30,203);c.stroke();}
   for(let y=104;y<=203;y+=24){c.beginPath();c.moveTo(115,y);c.lineTo(397,y);c.stroke();}
-  if(fit){const a=proj(event.fit.start),b=proj(event.fit.end);c.strokeStyle=AMBER;c.lineWidth=1.4;c.beginPath();c.moveTo(...a);c.lineTo(...b);c.stroke();c.fillStyle=AMBER;c.fillText('→',b[0]+3,b[1]+4);}
-  for(let i=0;i<event.hits.length;i++){const h=event.hits[i],p=proj(h.p);c.fillStyle=`rgb(${122+i*4},${155-i*4},${102-i*3})`;c.beginPath();c.arc(p[0],p[1],2+h.q*.46,0,Math.PI*2);c.fill();if(i%3===0){c.font='10px Courier New,monospace';c.fillText('D'+h.id,p[0]+8,p[1]+3);}}
+  if(fit){const a=proj(event.fit.start),b=proj(event.fit.end);c.strokeStyle=AMBER;c.lineWidth=1.4;c.beginPath();c.moveTo(...a);c.lineTo(...b);c.stroke();c.fillStyle=AMBER;c.fillRect(Math.round(b[0])-2,Math.round(b[1])-2,4,4);}
+  for(let i=0;i<event.hits.length;i++){const h=event.hits[i],p=proj(h.p),phase=h.ns/Math.max(1,event.duration);c.fillStyle=`rgb(${Math.round(165-phase*55)},${Math.round(175-phase*58)},${Math.round(116-phase*28)})`;const r=Math.max(2,Math.round(Math.sqrt(h.q)*1.15));c.fillRect(Math.round(p[0])-r,Math.round(p[1])-r,r*2,r*2);if(i%5===0){c.font='10px Courier New,monospace';c.fillText('D'+h.id,p[0]+r+2,p[1]+3);}}
+
  }
 }

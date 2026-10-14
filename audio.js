@@ -1,9 +1,10 @@
-import {zoneAt,LAMP_DATA} from './layout.js?v=2.0';
+import {zoneAt,LAMP_DATA} from './layout.js?v=3.0';
+import {MachineryAudio} from './machinery-audio.js?v=3.0';
 // Procedural environmental sound. No music, downloaded recordings or jump cues.
 // AudioContext is only created inside the user's ENTRAR gesture.
 export class Atmosphere {
   constructor(){this.ctx=null;this.volume=.58;this.muted=false;this.active=false;this.nextEvent=9;this.elapsed=0;this.nodes=[];this.stepSide=1;}
-  configure(lamps){this.sources=lamps;}
+  configure(lamps,devices=[]){this.sources=lamps;this.machineSources=devices.filter(d=>!['checkin','link'].includes(d.id)).map(d=>({id:d.id,zone:d.zone,x:d.target.x,y:d.target.y,z:d.target.z}));}
   start(){
     if(!this.ctx){const C=window.AudioContext||window.webkitAudioContext;if(!C)return false;
       try{this.ctx=new C({latencyHint:'interactive'});this.build();}catch{this.ctx=null;return false;}}
@@ -22,7 +23,7 @@ export class Atmosphere {
     this.verb=c.createConvolver();const ir=c.createBuffer(2,c.sampleRate*1.15,c.sampleRate);
     for(let ch=0;ch<2;ch++){let d=ir.getChannelData(ch);for(let i=0;i<d.length;i++)d[i]=(Math.random()*2-1)*Math.exp(-i/(c.sampleRate*.21))*.35;}
     this.verb.buffer=ir;const wet=c.createGain();wet.gain.value=.22;this.verb.connect(wet);wet.connect(this.master);
-    this.noise=this.noiseBuffer(4);this.shortNoise=this.noiseBuffer(.3);
+    this.noise=this.noiseBuffer(4);this.shortNoise=this.noiseBuffer(.3);this.machinery=new MachineryAudio(this);
     this.hums=[this.hum([-.65,2.2,2.35],49,.031),this.hum([.6,2.2,-3.05],57,.027)];
     const rumble=c.createBufferSource();rumble.buffer=this.noise;rumble.loop=true;
     const filter=c.createBiquadFilter();filter.type='lowpass';filter.frequency.value=140;
@@ -50,8 +51,8 @@ export class Atmosphere {
   setVolume(v){this.volume=Math.max(0,Math.min(1,v));this.applyVolume();}
   setMuted(v){this.muted=v;this.applyVolume();}
   pause(){this.active=false;this.applyVolume();if(this.ctx){clearTimeout(this.suspendTimer);this.suspendTimer=setTimeout(()=>{if(!this.active)this.ctx.suspend().catch(()=>{});},500);}}
-  update(dt,player){
-    if(!this.ctx||!this.active)return;const c=this.ctx,now=c.currentTime;this.elapsed+=dt;
+  update(dt,player,state){
+    if(!this.ctx||!this.active)return;const c=this.ctx,now=c.currentTime;this.elapsed+=dt;this.machinery.update(dt,player,state);
     const l=c.listener,fx=-Math.sin(player.yaw),fz=-Math.cos(player.yaw);
     if(l.positionX){l.positionX.setTargetAtTime(player.x,now,.03);l.positionY.value=1.64;l.positionZ.setTargetAtTime(player.z,now,.03);l.forwardX.setTargetAtTime(fx,now,.03);l.forwardY.value=0;l.forwardZ.setTargetAtTime(fz,now,.03);l.upX.value=0;l.upY.value=1;l.upZ.value=0;}
     else{l.setPosition(player.x,1.64,player.z);l.setOrientation(fx,0,fz,0,1,0);}

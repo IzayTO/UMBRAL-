@@ -1,4 +1,4 @@
-UMBRAL — versión 2.0
+UMBRAL — versión 3.0
 
 El diseño de las habitaciones, geometría, texturas, rótulos, interfaz y síntesis
 sonora se crearon para esta entrega. No se incluyen assets, grabaciones,
