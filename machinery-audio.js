@@ -1,4 +1,4 @@
-import {zoneAt} from './layout.js?v=3.0';
+import {zoneAt} from './layout.js?v=3.1';
 // Three shared machine voices: proximity/room occlusion, no extra global drone.
 export class MachineryAudio{
  constructor(atmosphere){this.a=atmosphere;this.next=0;this.time=0;this.voices=[];const a=atmosphere,c=a.ctx;

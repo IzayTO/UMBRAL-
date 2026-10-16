@@ -19,9 +19,9 @@ export function directorTick(s,dt,zone,critical=false){
  if(d.enabledAt===null){d.enabledAt=s.time;d.next=s.time+65+random(d)*110;}
  d.active=d.active.filter(e=>!e.benign||s.time<e.until);
  if(s.time<d.next)return [];
- if(critical||s.job||s.armed||s.flash){d.next=s.time+12+random(d)*20;return [];}
- d.next=s.time+70+random(d)*170;
- if(d.active.length>=2||random(d)>.46){d.quiet++;return [];}
+ if(critical||s.job?.kind==='calibrate'||s.armed||s.flash){d.next=s.time+12+random(d)*20;return [];}
+ d.next=s.time+65+random(d)*155;
+ if(d.active.length>=2||random(d)>.57){d.quiet++;return [];}
  const pool=Object.keys(FAULTS).filter(k=>FAULTS[k].min<=s.mission&&!d.active.some(e=>e.type===k)&&!d.recent.slice(-3).includes(k));
  if(!pool.length)return [];
  // Sound often originates elsewhere, but only from sectors already visited.

@@ -1,6 +1,7 @@
-import {zoneAt,LAMP_DATA} from './layout.js?v=3.0';
-import {MachineryAudio} from './machinery-audio.js?v=3.0';
-// Procedural environmental sound. No music, downloaded recordings or jump cues.
+import {zoneAt,LAMP_DATA} from './layout.js?v=3.1';
+import {MachineryAudio} from './machinery-audio.js?v=3.1';
+import {UnderIceScore} from './score.js?v=3.1';
+// Original environmental voices plus an original, state-dependent chamber score.
 // AudioContext is only created inside the user's ENTRAR gesture.
 export class Atmosphere {
   constructor(){this.ctx=null;this.volume=.58;this.muted=false;this.active=false;this.nextEvent=9;this.elapsed=0;this.nodes=[];this.stepSide=1;}
@@ -23,7 +24,7 @@ export class Atmosphere {
     this.verb=c.createConvolver();const ir=c.createBuffer(2,c.sampleRate*1.15,c.sampleRate);
     for(let ch=0;ch<2;ch++){let d=ir.getChannelData(ch);for(let i=0;i<d.length;i++)d[i]=(Math.random()*2-1)*Math.exp(-i/(c.sampleRate*.21))*.35;}
     this.verb.buffer=ir;const wet=c.createGain();wet.gain.value=.22;this.verb.connect(wet);wet.connect(this.master);
-    this.noise=this.noiseBuffer(4);this.shortNoise=this.noiseBuffer(.3);this.machinery=new MachineryAudio(this);
+    this.noise=this.noiseBuffer(4);this.shortNoise=this.noiseBuffer(.3);this.machinery=new MachineryAudio(this);this.score=new UnderIceScore(this);
     this.hums=[this.hum([-.65,2.2,2.35],49,.031),this.hum([.6,2.2,-3.05],57,.027)];
     const rumble=c.createBufferSource();rumble.buffer=this.noise;rumble.loop=true;
     const filter=c.createBiquadFilter();filter.type='lowpass';filter.frequency.value=140;
@@ -59,7 +60,7 @@ export class Atmosphere {
     const breath=.76+.10*Math.sin(this.elapsed*.19)+.09*Math.sin(this.elapsed*.071+1.4);
     const quiet=(Math.sin(this.elapsed*.049+1.7)>.90)?.28:1;
     this.drone.gain.setTargetAtTime(.065*breath*quiet,now,.6);this.air.gain.setTargetAtTime(.035*quiet,now,.7);
-    const current=zoneAt(player.x,player.z)?.id;
+    const current=zoneAt(player.x,player.z)?.id;this.score.update(dt,state,current);
     if(this.elapsed>(this.nextSource||0)){
       this.nextSource=this.elapsed+.4;
       const sources=[...(this.sources||LAMP_DATA)].sort((a,b)=>Math.hypot(a.position[0]-player.x,a.position[2]-player.z)-Math.hypot(b.position[0]-player.x,b.position[2]-player.z)).slice(0,2);
@@ -71,7 +72,7 @@ export class Atmosphere {
       h.gain.gain.setTargetAtTime(h.volume*occ*(.96+.04*Math.sin(this.elapsed*1.2)),now,.3);
       h.filter.frequency.setTargetAtTime(same?900:190,now,.3);
     }
-    if(this.elapsed>this.nextEvent){this.nextEvent=this.elapsed+12+Math.random()*22;if(Math.random()>.22)this.event(player);}
+    if(this.elapsed>this.nextEvent){this.nextEvent=this.elapsed+24+Math.random()*46;if(Math.random()>.22)this.event(player);}
   }
   event(player){
     // Soft expansions in pipes, usually in the adjacent room, never in the player's face.

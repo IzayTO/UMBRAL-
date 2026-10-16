@@ -1,5 +1,5 @@
 import * as T from './three.module.min.js';
-import {boundsOf} from './layout.js?v=3.0';
+import {boundsOf} from './layout.js?v=3.1';
 
 // Physical instruments added to the existing station before static batching.
 // Screen contents and actions belong to the simulation/controller, not this file.
@@ -30,7 +30,7 @@ export function installEquipment(world,h){
   const geo=new T.PlaneGeometry(w,h,8,6),p=geo.attributes.position;
   for(let i=0;i<p.count;i++)p.setZ(i,.005*(1-(p.getX(i)/(w/2))**2-(p.getY(i)/(h/2))**2));
   geo.computeVertexNormals();
-  const material=new T.MeshBasicMaterial({color:0xffffff});material.name='device-screen-'+id;
+  const material=new T.MeshBasicMaterial({color:0xffffff,fog:false});material.name='device-screen-'+id;
   const m=new T.Mesh(geo,material);m.name=material.name;m.position.set(0,y,z);m.userData.device=id;
   parent.add(m);world.materials[material.name]=material;world.specs[material.name]={color:0xffffff,emissive:true};
   movable(m,zone,'screen');return m;
@@ -64,6 +64,20 @@ export function installEquipment(world,h){
      tick.rotation.z=-a;
     }
    }
+  }else if(kind==='slider'){
+   box('black',.24,.13,.05,x,y,.102,0,parent);
+   for(const xx of [-.125,.125])box('iron',.012,.15,.045,x+xx,y,.12,0,parent);
+   box('paint',.20,.10,.06,0,0,0,0,pivot,false);
+   beam('iron',[-.075,-.025,.043],[.075,-.025,.043],.012,pivot);
+   plate(3,0,.12,.035,0,.025,.036,[0,0,0],pivot);
+  }else if(kind==='plug'){
+   cyl('iron',.037,.037,.05,0,0,.015,8,pivot,[Math.PI/2,0,0],false,false);
+   box('rubber',.06,.12,.035,0,-.08,.004,0,pivot,false);
+   beam('wire',[x,y-.13,.14],[x+.12,y-.22,.08],.012,parent);
+  }else if(kind==='lever'){
+   box('iron',.12,.07,.025,0,0,0,0,pivot,false);
+   beam('iron',[0,0,.02],[0,.10,.07],.012,pivot);
+   cyl('black',.024,.024,.09,0,.10,.07,8,pivot,[0,0,Math.PI/2],false,false);
   }else if(kind==='switch'){
    box('iron',.031*scale,.075*scale,.025,0,.018*scale,0,0,pivot,false);
    box('red',.040*scale,.026*scale,.034,0,.061*scale,.009,0,pivot,false);
@@ -74,27 +88,28 @@ export function installEquipment(world,h){
    cyl('iron',.009,.009,.005,0,0,.031,8,pivot,[Math.PI/2,0,0],false,false);
   }
   movable(pivot,device.zone,'control');
-  const hit=new T.Mesh(new T.PlaneGeometry(.15*scale,.15*scale),touchMaterial);
+  const hit=new T.Mesh(new T.PlaneGeometry((kind==='slider'?.28:.18)*scale,(kind==='slider'?.19:.18)*scale),touchMaterial);
   hit.position.set(x,y,.205);hit.name='hit-'+device.id+'-'+spec.id;hit.userData.device=device.id;hit.userData.control=spec.id;
   parent.add(hit);movable(hit,device.zone,'hit');
-  const out={id:spec.id,kind,action:spec.action,mesh:pivot,hit,label:spec.label||spec.id};
-  if(kind==='knob'){out.min=spec.min;out.max=spec.max;out.step=spec.step;}
+  const outline=new T.LineLoop(new T.BufferGeometry().setFromPoints([new T.Vector3(-.09,-.09,.001),new T.Vector3(.09,-.09,.001),new T.Vector3(.09,.09,.001),new T.Vector3(-.09,.09,.001)]),new T.LineBasicMaterial({color:0xa9b28a,transparent:true,opacity:.65,depthTest:true}));outline.visible=false;hit.add(outline);
+  const out={outline,id:spec.id,kind,action:spec.action,mesh:pivot,hit,label:spec.label||spec.id};
+  if(kind==='knob'||kind==='slider'){out.min=spec.min;out.max=spec.max;out.step=spec.step;out.travel=spec.travel||.14;}
   device.controls.push(out);return out;
  }
 
  function panel(options,controls){
-  const {id,zone,x,z,y=1.45,yaw=0,w=.95,h=.68,title}=options;
+  const {id,zone,x,z,y=1.45,yaw=0,w=.95,h=.68,title,style='panel'}=options;
   const g=group(x,z,yaw);g.position.y=y;g.name='equipment-'+id;g.userData.zone=zone;
-  const d={id,zone,title,group:g,target:new T.Vector3(),normal:new T.Vector3(0,0,1).applyAxisAngle(new T.Vector3(0,1,0),yaw),size:[w+.06,h+.06],screen:null,controls:[],inspectPoint:new T.Vector3()};
+  const d={id,zone,title,group:g,target:new T.Vector3(),normal:new T.Vector3(0,0,1).applyAxisAngle(new T.Vector3(0,1,0),yaw),style,palette:['scope','pulser','thermal','comms'].includes(id)?'blue':'green',size:[w+.06,h+.06],screen:null,controls:[],inspectPoint:new T.Vector3()};
   inZone(zone,()=>{
    // Worn cabinet, exposed fasteners and a recessed CRT in the V2 palette.
-   box('green',w,h,.16,0,0,0,0,g);
+   box(style==='scope'?'paint':style==='link'?'iron':'green',w,h,style==='scope'?.35:.16,0,0,style==='scope'?-.08:0,0,g);
    for(const sx of [-1,1])box('rust',.025,h+.02,.035,sx*(w/2-.008),0,.075,0,g);
    for(const sy of [-1,1])box('iron',w+.025,.018,.025,0,sy*h/2,.082,0,g);
-   const sw=Math.min(.62,w-.15),sh=w<.70?.26:.31,sy=.095;
+   const sw=style==='link'?.76:style==='scope'?.72:style==='optical'?.73:Math.min(.62,w-.15),sh=style==='link'?.25:style==='scope'?.37:w<.70?.26:.31,sy=style==='link'?.225:style==='scope'?.06:.095;
    box('black',sw+.055,sh+.045,.014,0,sy,.094,0,g);
    for(const sx of [-1,1])box('rust',.014,sh+.04,.019,sx*(sw/2+.014),sy,.106,0,g);
-   d.screen=screen(g,id,zone,sw,sh,sy);
+   d.screen=screen(g,id,zone,sw,sh,sy);if(['paper','relay','valve','ballast','tester'].includes(style))d.display='scale';
    for(const sx of [-1,1])for(const sy of [-1,1])screw(g,sx*(w/2-.044),sy*(h/2-.046));
    plate(3,0,Math.min(.17,w*.27),.044,-w*.30,-.103,.094,[0,0,0],g);
    for(let i=0;i<4;i++)box('black',.036,.007,.003,w*.27+i*.020,-.103,.092,0,g,false);
@@ -106,8 +121,38 @@ export function installEquipment(world,h){
     beam('wire',[-w*.32,-h*.5,-.10],[-w*.32,-y+.18,-.10],.012,g);
     for(const yy of [-.52,-.92])if(y+yy>.20)box('iron',.045,.018,.04,-w*.32,yy,-.105,0,g);
    }
-   const spacing=Math.min(.19,(w-.19)/Math.max(1,controls.length-1));
-   controls.forEach((s,i)=>control(g,d,s,(i-(controls.length-1)/2)*spacing,-.224,w<.65?.85:1));
+   const spacing=Math.min(.23,(w-.19)/Math.max(1,controls.length-1));
+   controls.forEach((s,i)=>{
+    let xx=(i-(controls.length-1)/2)*spacing,yy=-.224;
+    if(style==='link'){xx=[-.37,-.13,.15,.39][i];yy=i===2?-.045:-.29;}
+    if(style==='scope'){xx=i===0?.47:.47;yy=i===0?.06:-.20;}
+    if(style==='optical'){xx=[-.55,-.14,.24,.57][i];yy=-.224;}
+    control(g,d,s,xx,yy,w<.65?.85:1);
+   });
+   if(style==='scope'){
+    // A deep bench oscilloscope, carry handle and two physical BNC leads.
+    d.screen.position.x=-.12;
+    for(const x of [-.48,.48])beam('iron',[x,h/2,-.06],[x,h/2+.08,-.06],.018,g);
+    beam('iron',[-.48,h/2+.08,-.06],[.48,h/2+.08,-.06],.018,g);
+    for(const x of [-.30,-.08]){cyl('iron',.023,.023,.045,x,-.25,.14,8,g,[Math.PI/2,0,0]);beam('wire',[x,-.25,.17],[x-.07,-.37,.27],.01,g);}
+   }
+   if(style==='link'){
+    box('black',.43,.20,.03,.13,-.045,.094,0,g);
+    for(const x of [-.08,.34])box('rust',.02,.20,.04,x,-.045,.10,0,g);
+    for(let i=0;i<4;i++)box('enamel',.015,.045,.009,.075+i*.034,.05,.119,0,g,false);
+   }
+   if(style==='thermal'){
+    for(const x of [-w*.42,w*.42]){cyl('iron',.022,.022,.35,x,-.06,.13,8,g);cyl('rubber',.03,.03,.09,x,-.21,.13,8,g);beam('wire',[x,-.24,.13],[x,-.46,-.02],.01,g);}
+   }
+   if(style==='relay'){
+    const coil=group(0,0,0);coil.position.set(0,h/2+.12,0);g.add(coil);box('iron',.38,.20,.10,0,0,-.01,0,coil);for(let i=0;i<9;i++)torus('rust',.049,.008,-.08+i*.02,0,.07,[0,Math.PI/2,0],coil,8);beam('iron',[-.15,.05,.08],[.15,.05,.08],.009,coil);
+   }
+   if(style==='ballast'){for(const x of [-.23,0,.23])cyl('enamel',.035,.035,.06,x,h/2+.07,.02,8,g,[Math.PI/2,0,0]);}
+   if(style==='comms'){
+    // Patch bay and a route card distinguish communications from the scope.
+    for(let i=0;i<6;i++)cyl('black',.018,.018,.015,-.25+i*.10,-.115,.12,8,g,[Math.PI/2,0,0]);
+    beam('wire',[-.15,-.115,.15],[-.09,-.17,.19],.007,g);beam('wire',[-.09,-.17,.19],[.15,-.115,.15],.007,g);
+   }
   });
   // Wall panels protrude into the player's body space, but never cross a doorway.
   if(!options.desktop)solid(x,z,w+.025,.22,yaw,'device-'+id);
@@ -120,13 +165,15 @@ export function installEquipment(world,h){
 
  // Check-in is 47 cm north of the requested point to keep its approach clear
  // of the original Access chair. Relay is narrower to fit beside the V2 gauges.
- panel({id:'checkin',zone:'1',title:'ESTACIÓN DE ACCESO',x:5.82,z:3.18,yaw:-Math.PI/2},[B('briefing','briefing','REGISTRAR')]);
+ panel({id:'checkin',zone:'1',title:'REGISTRO DE TURNO',style:'paper',w:.70,h:.58,x:5.82,z:3.18,yaw:-Math.PI/2},[B('briefing','briefing','REGISTRAR')]);
+ const tester=panel({id:'tester',zone:'2',title:'BANCO / CONTACTOS',style:'tester',x:.42,z:7.30,y:1.24,yaw:Math.PI/2,w:.85,h:.62,desktop:true},[{...B('spareConnect','spareConnect','ZÓCALO'),kind:'plug'},B('bench','bench','MEDIR')]);
+ inZone('2',()=>{const g=group(.42,7.30,Math.PI/2);box('wood',1.03,.065,.62,0,.85,0,0,g);for(const x of [-.43,.43])for(const z of [-.24,.24])box('iron',.045,.82,.045,x,.41,z,0,g);box('iron',.23,.07,.15,-.31,.92,.18,0,g);for(let i=0;i<4;i++)cyl('iron',.008,.008,.04,-.38+i*.045,.97,.18,6,g);solid(.42,7.30,1.08,.67,Math.PI/2,'contact-bench');});
  panel({id:'supply',zone:'2',title:'SUMINISTRO / SUPERVISIÓN',x:5.8,z:6.28},[
   B('inspect:supply','inspect:supply','INSPECCIÓN'),K('voltageTrim','supplyTrim',-2,2,.1,'TENSIÓN'),S('load','loadToggle','CARGA')]);
- panel({id:'link',zone:'4',title:'ENLACE / MÓDULO 17',x:14.70,z:11.05,y:1.5,yaw:-Math.PI/2},[
-  S('isolate','isolate','AISLAR'),B('inspectLink','inspectLink','CONTACTOS'),B('reseat','reseat','REAJUSTAR'),S('restore','restore','RESTABLECER')]);
+ panel({id:'link',zone:'4',title:'RECEPTOR / MÓDULO 17',style:'link',w:1.04,h:.86,x:14.70,z:11.05,y:1.5,yaw:-Math.PI/2},[
+  S('isolate','isolate','AISLAR'),{...B('inspectLink','inspectLink','REGISTRO'),kind:'lever'},{id:'moduleTravel',action:'reseat',label:'ASENTAR',kind:'slider',min:0,max:1,step:.05,travel:.13},S('restore','restore','RESTABLECER')]);
 
- panel({id:'scope',zone:'5',title:'OSCILOSCOPIO / SINCRONÍA',x:15.25,z:4.9,y:1.22,yaw:Math.PI/2,desktop:true},[
+ panel({id:'scope',zone:'5',title:'OSCILOSCOPIO / SINCRONÍA',style:'scope',w:1.10,x:15.25,z:4.9,y:1.22,yaw:Math.PI/2,desktop:true},[
   K('syncTrim','syncTrim',-30,30,.5,'DESFASE'),B('syncTest','syncTest','COMPARAR')]);
  inZone('5',()=>{
   const bench=group(15.25,4.9,Math.PI/2);
@@ -140,7 +187,7 @@ export function installEquipment(world,h){
  panel({id:'acquisition',zone:'3',title:'ADQUISICIÓN / DISCRIMINADOR',x:7.48,z:2.8,y:1.5,yaw:Math.PI/2},[
   K('multiplicity','multiplicity',2,8,1,'COINCIDENCIA'),K('windowNs','windowNs',400,2400,100,'VENTANA'),S('notchToggle','notchToggle','FILTRO'),B('acqTest','acqTest','PRUEBA'),B('acqAccept','acqAccept','ACEPTAR')]);
 
- panel({id:'pulser',zone:'5',title:'GENERADOR / PULSOS LED',x:20.18,z:.19,y:1.50,w:.90},[K('pulseLevel','pulseLevel',1,10,1,'NIVEL LED'),B('calibrate','calibrate','EMITIR')]);
+ panel({id:'pulser',zone:'5',title:'BANCO ÓPTICO / LED',style:'optical',x:18.25,z:4.04,y:1.17,w:1.58,h:.58,desktop:true},[K('pulseLevel','pulseLevel',1,10,1,'NIVEL LED'),{...B('pulseConnect','pulseConnect','CONECTOR'),kind:'plug'},{...S('shutterToggle','shutterToggle','OBTURADOR'),kind:'lever'},B('calibrate','calibrate','EMITIR')]);
  const fan=panel({id:'fan',zone:'4',title:'VENTILACIÓN / COJINETE',x:11.5,z:10.27,y:1.7},[
   K('fanTrim','fanTrim',0,10,.25,'AJUSTE'),B('inspect:fan','inspect:fan','INSPECCIÓN'),B('verify:fan','verify:fan','VERIFICAR')]);
  inZone('4',()=>{
@@ -158,25 +205,33 @@ export function installEquipment(world,h){
   }
   for(const x of [-.22,.22])for(const y of [.34,.78])screw(g,x,y,.068);
  });
- fan.group.updateMatrixWorld(true);fan.target.copy(fan.group.localToWorld(new T.Vector3(0,.23,.11)));fan.size=[1.01,1.21];fan.inspectPoint.copy(fan.target).addScaledVector(fan.normal,.9);
+ fan.group.updateMatrixWorld(true);fan.target.copy(fan.group.localToWorld(new T.Vector3(0,.05,.11)));fan.size=[1.01,.84];fan.inspectPoint.copy(fan.target).addScaledVector(fan.normal,.9);
 
- panel({id:'relay',zone:'3',title:'RELÉ / CONTACTOS',x:11.79,z:.19,y:1.7,w:.58,h:.66},[
+ panel({id:'relay',zone:'3',title:'RELÉ / CONTACTOS',style:'relay',x:11.79,z:.19,y:1.7,w:.58,h:.66},[
   S('relayPower','relayPower','CIRCUITO'),B('inspect:relay','inspect:relay','INSPECCIÓN'),B('relayReplace','relayReplace','SUSTITUIR')]);
- panel({id:'comms',zone:'4',title:'COMUNICACIONES',x:13.53,z:13.51,yaw:Math.PI,w:.70},[
+ panel({id:'comms',zone:'4',title:'COMUNICACIONES',style:'comms',x:13.53,z:13.51,yaw:Math.PI,w:.70},[
   K('commChannel','commChannel',1,6,1,'CANAL'),B('inspect:comms','inspect:comms','INSPECCIÓN'),B('commReset','commReset','REINICIAR')]);
  const pipeKnob=K('pipeFlow','pipeFlow',0,1,.05,'CAUDAL');pipeKnob.valve=true;
- const pipe=panel({id:'pipe',zone:'h4',title:'RETORNO / VIBRACIÓN',x:14.08,z:8.75,y:1.30,yaw:-Math.PI/2,w:.60},[
+ const pipe=panel({id:'pipe',zone:'h4',title:'RETORNO / VIBRACIÓN',style:'valve',x:14.08,z:8.75,y:1.30,yaw:-Math.PI/2,w:.60},[
   pipeKnob,B('inspect:pipe','inspect:pipe','INSPECCIÓN'),B('verify:pipe','verify:pipe','VERIFICAR')]);
  inZone('h4',()=>{
   const g=pipe.group;beam('rust',[-.18,-.72,-.075],[-.18,.69,-.075],.035,g);
   for(const y of [-.56,.52])cyl('iron',.052,.052,.045,-.18,y,-.075,8,g);
   beam('iron',[-.18,-.224,-.075],[-.18,-.224,.09],.021,g);
  });
- panel({id:'thermal',zone:'5',title:'TERMOMETRÍA / REFERENCIA',x:21.85,z:5.15,y:1.5,yaw:-Math.PI/2},[
+ panel({id:'thermal',zone:'5',title:'COMPARADOR / SONDAS',style:'thermal',x:21.85,z:5.15,y:1.5,yaw:-Math.PI/2},[
   K('tempTrim','tempTrim',-8,8,.25,'CORRECCIÓN'),S('tempReference','tempReference','REFERENCIA'),B('inspect:temperature','inspect:temperature','INSPECCIÓN'),B('verify:temperature','verify:temperature','VERIFICAR')]);
- panel({id:'lamp',zone:'7',title:'ALUMBRADO / REGULADOR',x:7.67,z:21.10,y:1.5,yaw:-Math.PI/2},[
+ panel({id:'lamp',zone:'7',title:'BALASTO / ARCHIVO',style:'ballast',w:.75,x:7.67,z:21.10,y:1.5,yaw:-Math.PI/2},[
   K('lampTrim','lampTrim',0,10,.25,'BALASTO'),B('inspect:lamp','inspect:lamp','INSPECCIÓN'),B('verify:lamp','verify:lamp','VERIFICAR')]);
 
+ // A film reader uses an actual transport wheel and archival records, on the
+ // existing Archive desk. It complements (and shares data with) the old CRT.
+ const film=panel({id:'film',zone:'7',title:'LECTOR / MICROFILM',style:'film',x:6.68,z:17.10,y:1.20,yaw:-Math.PI/2,w:.78,h:.62,desktop:true},[K('archiveIndex','archiveIndex',1,3,1,'BOBINA'),B('archiveRead','archiveRead','LEER'),B('archiveSelect','archiveSelect','REFERENCIA')]);film.display='paper';
+ inZone('7',()=>{
+  const g=film.group;
+  for(const x of [-.25,.25]){box('iron',.045,.17,.09,x,.35,-.04,0,g);const reel=new T.Group();reel.position.set(x,.48,.02);g.add(reel);cyl('iron',.12,.12,.028,0,0,0,12,reel,[Math.PI/2,0,0],false,false);cyl('black',.084,.084,.031,0,0,.018,12,reel,[Math.PI/2,0,0],false,false);for(let j=0;j<3;j++){const a=j*Math.PI*2/3;beam('iron',[0,0,.036],[Math.sin(a)*.10,Math.cos(a)*.10,.036],.010,reel);}movable(reel,'7','film-reel');}
+  beam('rubber',[-.25,.42,.02],[.25,.42,.02],.006,g);box('black',.33,.024,.14,0,.32,.04,0,g);
+ });
  // Attach a paper feed/readout directly to the original recorder. Its existing
  // pedestal and collider remain owned by station.js, so no extra desk appears.
  const pg=group(10.94,.77,0);pg.position.y=1.16;pg.name='equipment-printer';pg.userData.zone='3';
@@ -189,7 +244,7 @@ export function installEquipment(world,h){
   for(const x of [-.21,.21])screw(pg,x,-.12,.001);
   const feedControls=new T.Group();feedControls.position.z=-.105;pg.add(feedControls);
   control(feedControls,printer,B('inspect:printer','inspect:printer','LEER'),-.11,-.12,.8);
-  control(feedControls,printer,B('printerFeed','printerFeed','AVANCE'),.11,-.12,.8);
+  control(feedControls,printer,{...K('paperTravel','printerFeed',0,1,.05,'RODILLO'),travel:.04},.11,-.12,.8);
  });
  devices.push(printer);
  world.root.updateMatrixWorld(true);

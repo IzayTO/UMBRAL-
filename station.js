@@ -1,7 +1,7 @@
 import * as T from './three.module.min.js';
-import {buildWorld as buildLegacy,TEX as OLD_TEX,batchWorld} from './world.js?v=3.0';
-import {ROOMS,ZONES,PORTALS,LAMP_DATA,START,GLASS,WINDOW,boundsOf,zoneAt,portalPoint} from './layout.js?v=3.0';
-import {installEquipment} from './equipment.js?v=3.0';
+import {buildWorld as buildLegacy,TEX as OLD_TEX,batchWorld} from './world.js?v=3.1';
+import {ROOMS,ZONES,PORTALS,LAMP_DATA,START,GLASS,WINDOW,boundsOf,zoneAt,portalPoint} from './layout.js?v=3.1';
+import {installEquipment} from './equipment.js?v=3.1';
 export {START,LAMP_DATA};
 export const TEX=[...OLD_TEX,...['paint','green','concrete'].flatMap(n=>[2,3,4].map(i=>n+i)),'signs','station-map','glass'];
 
@@ -202,7 +202,22 @@ export function buildStation(textures={}){
  function storage(zone,x,z,yaw=0,length=1.8){inZone(zone,()=>{
   const g=group(x,z,yaw);for(const xx of [-length/2,length/2])for(const zz of [-.25,.25])box('iron',.045,2.16,.045,xx,1.08,zz,0,g);
   for(const y of [.16,.69,1.22,1.77,2.13])box('rust',length+.07,.035,.56,0,y,0,0,g);
-  for(let j=0;j<3;j++)for(let k=0;k<3;k++){const xx=-length*.31+k*length*.31;carton(g,xx,.71+j*.53,0,length*.26,.28+(k%2)*.05,.38);}
+  // Curated shelf contents: media, documents and optical spares have distinct
+  // dimensions and rests. Nothing is scattered into doors or collision lanes.
+  function binder(x,y,z,width=.065,mat='green',lean=0){const b=new T.Group();b.position.set(x,y,z);b.rotation.z=lean;g.add(b);box(mat,width,.31,.25,0,.155,0,0,b);box('paper',width*.68,.28,.219,.003,.155,.013,0,b);box(mat,width,.31,.023,0,.155,.125,0,b);plate(3,0,width*.74,.10,0,.21,.138,[0,0,0],b);}
+  function reel(x,y){box('paint',.26,.28,.055,x,y+.14,0,0,g);cyl('black',.108,.108,.027,x,y+.14,.043,10,g,[Math.PI/2,0,0]);torus('iron',.092,.014,x,y+.14,.062,[0,0,0],g,10);for(let j=0;j<3;j++){const a=j*Math.PI*2/3;beam('iron',[x,y+.14,.063],[x+Math.sin(a)*.09,y+.14+Math.cos(a)*.09,.063],.010,g);}}
+  if(zone==='7'){
+   const section=Math.round(z);
+   for(let i=0;i<(section<16?10:6);i++)binder(-length*.40+i*.09,.708,.03,.063,i%4===0?'red':'green',i===5?.04:0);
+   reel(-.55,1.24);reel(-.22,1.24);if(section>16)reel(.12,1.24);
+   for(let i=0;i<4;i++)box('paper',.32,.025,.23,.48,1.25+i*.026,.04,i*.024,g);
+   carton(g,-.46,1.79,0,.52,.25,.38);for(let i=0;i<4;i++)binder(.03+i*.10,1.79,.01,.075,'paint');
+  }else if(zone==='5'){
+   for(const x of [-.46,.36]){box('iron',.40,.04,.38,x,.728,0,0,g);cyl('rubber',.10,.10,.05,x,.77,0,10,g);mesh(new T.SphereGeometry(.18,10,7),'green',[x,.97,0],[0,0,0],g);torus('iron',.181,.015,x,.97,0,[Math.PI/2,0,0],g);}
+   carton(g,-.45,1.24,0,.48,.28,.36);reel(.30,1.24);for(let i=0;i<3;i++)binder(-.46+i*.09,1.79,.01);box('iron',.52,.15,.32,.36,1.87,0,0,g);
+  }else if(zone==='6'){
+   for(let i=0;i<4;i++)reel(-.52+i*.31,.71);for(let i=0;i<7;i++)binder(-.6+i*.09,1.24,0,.062,i%3?'paint':'green');box('iron',.38,.21,.34,.5,1.345,0,0,g);carton(g,-.4,1.79,0,.52,.25,.38);reel(.30,1.79);
+  }else{carton(g,-.42,.71,0,.51,.30,.38);box('iron',.45,.15,.32,.37,.79,0,0,g);for(let i=0;i<4;i++)binder(-.48+i*.08,1.24,0);reel(.25,1.24);carton(g,.20,1.79,0,.62,.25,.38);}
   box('cloth',length*.42,.13,.40,0,.24,0,0,g);solid(x,z,length+.16,.66,yaw,'storage');
  });}
  function gaugeBoard(zone,x,z,yaw){inZone(zone,()=>{const g=group(x,z,yaw);box('paint',1.12,.65,.12,0,1.70,0,0,g);for(let i=0;i<3;i++)dial(g,-.34+i*.34,1.77,.075,.24,i===0?'voltage':null);for(let i=0;i<5;i++){led(g,-.42+i*.21,1.49,.073,i===2?'ledAmber':'ledGreen');beam('wire',[-.42+i*.21,1.36,0],[-.42+i*.21,.22,0],.014,g);}solid(x,z,1.18,.20,yaw,'gauge-panel');});}
@@ -232,11 +247,12 @@ export function buildStation(textures={}){
  consoleUnit('calibration','5',16.78,.76,0,'CALIBRACIÓN / PULSOS');
  desk('5',18.25,3.80,0,2.42);storage('5',21.55,2.08,-Math.PI/2,1.85);
  inZone('5',()=>{
-  const g=group(18.25,3.80,0);cyl('black',.18,.18,1.50,0,1.10,0,12,g,[0,0,Math.PI/2]);
+  const g=group(18.25,3.57,0);cyl('black',.18,.18,1.50,0,1.10,0,12,g,[0,0,Math.PI/2]);
   for(const xx of [-.75,.75]){cyl('rust',.235,.235,.05,xx,1.10,0,12,g,[0,0,Math.PI/2]);box('iron',.12,.20,.32,xx,.90,0,0,g);}
   const emitter=new T.Mesh(new T.SphereGeometry(.018,6,4),materials.phosphor);emitter.position.set(-.68,1.13,.16);g.add(emitter);indicators.push({mesh:emitter,key:'pulse'});
+  const shutter=box('iron',.055,.40,.43,.05,1.10,0,0,g);parts.splice(parts.indexOf(shutter),1);moving.push({mesh:shutter,key:'shutter',zone:'5'});
   cyl('green',.10,.10,.25,.95,.98,-.10,10,g);dial(g,.95,1.02,.06,.20,'response');
-  for(const x of [20.40,20.95]){cyl('iron',.20,.20,.055,x,.07,5.92,10);cyl('iron',.075,.075,.03,x,.11,5.92,8);mesh(new T.SphereGeometry(.18,10,7),'green',[x,.29,5.92]);torus('iron',.183,.018,x,.29,5.92,[Math.PI/2,0,0]);}
+
   chair(15.35,1.70,-.4);gaugeBoard('5',18.95,.14,0);
  });
  // Analysis: original-type furniture, a plotting console and a mechanical printer.
@@ -247,26 +263,39 @@ export function buildStation(textures={}){
  for(const z of [14.1,17.15,20.25])storage('7',3.16,z,Math.PI/2,2.0);
  consoleUnit('archive','7',5.23,22.16,Math.PI,'ARCHIVO / REGISTROS');
  desk('7',6.82,17.10,-Math.PI/2,1.75);
- inZone('7',()=>{chair(5.98,20.95,.5);for(let i=0;i<3;i++)carton(root,6.96,i*.28,13.34,.48,.28,.40);});
+ inZone('7',()=>{chair(5.98,20.95,.5);const g=group(6.82,13.20,0);box('green',1.37,1.55,.52,0,.82,0,0,g);for(const x of [-.57,.57])for(const z of [-.19,.19])box('iron',.085,.05,.085,x,.025,z,0,g);for(let j=0;j<4;j++)for(const x of [-.34,.34]){const y=.25+j*.36;box('paint',.63,.32,.025,x,y,.275,0,g);plate(3,0,.23,.07,x,y+.065,.291,[0,0,0],g);beam('iron',[x-.10,y-.04,.30],[x+.10,y-.04,.30],.012,g);}box('paper',.36,.06,.25,-.31,1.625,.07,.06,g);solid(6.82,13.20,1.43,.59,0,'archive-cabinet');});
+ inZone('7',()=>{
+  const g=group(6.82,17.10,-Math.PI/2);
+  for(let i=0;i<5;i++)box('paper',.29,.014,.37,-.66,.86+i*.015,.20,i*.012,g);
+  box('green',.25,.028,.36,.67,.87,.11,.12,g);plate(3,0,.15,.09,.67,.887,.11,[-Math.PI/2,0,.12],g);
+
+ });
+ inZone('2',()=>{
+  // A socket set and open relay carrier sit on the original maintenance bench.
+  const g=group(1.35,9.17,Math.PI);box('iron',.27,.028,.21,.37,.962,-.12,0,g);
+  for(let i=0;i<4;i++){cyl('iron',.017+i*.003,.017+i*.003,.048,.285+i*.055,1.00,-.12,8,g);}
+  beam('iron',[-.04,.96,-.19],[.20,.96,-.19],.012,g);box('rubber',.04,.025,.11,.15,.96,-.19,0,g);
+ });
  // Observation uses a restrained instrument bay; the window is the focal point.
  consoleUnit('observation','8',18.12,21.18,Math.PI,'OBSERVACIÓN / REGISTRO');
  desk('8',14.40,22.18,Math.PI,1.60);gaugeBoard('8',25.50,19.75,-Math.PI/2);
  inZone('8',()=>{chair(15.10,20.25,.7);storage('8',24.45,18.62,0,1.70);});
 
- const iceUniforms={uTime:{value:0},uFlash:{value:0},uFlashScale:{value:1},uFlashXY:{value:new T.Vector2(.5,.45)}};
+ const iceUniforms={uTime:{value:0},uHollow:{value:0},uFlash:{value:0},uFlashScale:{value:1},uFlashXY:{value:new T.Vector2(.5,.45)}};
  const iceMaterial=new T.ShaderMaterial({uniforms:iceUniforms,side:T.DoubleSide,vertexShader:'varying vec2 vUv;void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}',fragmentShader:`
- precision highp float;varying vec2 vUv;uniform float uTime;uniform float uFlash;uniform float uFlashScale;uniform vec2 uFlashXY;
+ precision highp float;varying vec2 vUv;uniform float uTime;uniform float uFlash;uniform float uHollow;uniform float uFlashScale;uniform vec2 uFlashXY;
  float h(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
  void main(){vec2 px=floor(vUv*vec2(768.0,169.0));
  float patch=h(floor(px/vec2(11.0,7.0)));
- float boundary=.845+.016*sin(vUv.x*12.0)+.014*sin(vUv.x*29.0)+.018*(patch-.5);
- float upper=smoothstep(boundary,1.02,vUv.y+.006*(h(px)-.5));
- vec3 c=mix(vec3(.00030,.0010,.0022),vec3(.0019,.0063,.0128),upper);
+ float boundary=.79+.016*sin(vUv.x*12.0)+.014*sin(vUv.x*29.0)+.018*(patch-.5);
+ float upper=smoothstep(boundary,1.025,vUv.y+.006*(h(px)-.5));
+ vec3 c=mix(vec3(.0007,.0032,.0105),vec3(.0035,.0135,.034),upper);
+ c*=.92+.13*patch+.04*h(floor(px/3.0));
  float stratum=pow(max(0.0,sin(vUv.y*75.0+sin(vUv.x*13.0)*.7+patch*.25)),36.0);
  c+=vec3(.00005,.00014,.00024)*stratum;
  float scratch=step(.997,h(vec2(floor(px.x*.3),floor(px.y*.06))));c+=scratch*vec3(.00007,.00014,.00020);
- vec2 d=(vUv-uFlashXY)/(vec2(.0034,.0154)*uFlashScale);float spark=exp(-dot(d,d)*2.8)*uFlash;
- c+=vec3(.023,.043,.066)*spark;gl_FragColor=vec4(c,1.0);}`});
+ vec2 d=(vUv-uFlashXY)/(vec2(.0043,.0195)*uFlashScale);float r=length(d);float spark=mix(exp(-r*r*2.8),exp(-pow((r-.62)*4.2,2.0))*.65,uHollow)*uFlash;
+ c+=vec3(.065,.14,.235)*spark;gl_FragColor=vec4(c,1.0);}`});
  iceMaterial.name='deep-ice';materials['deep-ice']=iceMaterial;specs['deep-ice']={color:0x030912,emissive:true};
  inZone('8',()=>{
   const radius=WINDOW.width/(2*Math.sin(WINDOW.arc/2)),segments=10,angles=Array.from({length:segments+1},(_,i)=>-WINDOW.arc/2+i*WINDOW.arc/segments);
@@ -279,12 +308,19 @@ export function buildStation(textures={}){
   for(const y of [0,2.64]){const p=[],u=[];for(let i=0;i<segments;i++){const a=point(angles[i],y),b=point(angles[i+1],y),c=[a[0],y,WINDOW.front],d=[b[0],y,WINDOW.front];const tri=y>1?[a,b,c,b,d,c]:[a,c,b,b,c,d];for(const v of tri){p.push(...v);u.push(v[0]/1.9,v[2]/1.9);}}const g=new T.BufferGeometry();g.setAttribute('position',new T.Float32BufferAttribute(p,3));g.setAttribute('uv',new T.Float32BufferAttribute(u,2));g.computeVertexNormals();mesh(g,y>1?'ceiling':'floor');}
 
   for(let i=0;i<segments;i++){
-   const a=angles[i],b=angles[i+1],pa=point(a,.53),pb=point(b,.53),mid=new T.Vector3(...pa).add(new T.Vector3(...pb)).multiplyScalar(.5),length=new T.Vector3(...pa).distanceTo(new T.Vector3(...pb)),yaw=-(a+b)/2;
+   const a=angles[i],b=angles[i+1],pa=point(a,.53),pb=point(b,.53),mid=new T.Vector3(...pa).add(new T.Vector3(...pb)).multiplyScalar(.5),length=new T.Vector3(...pa).distanceTo(new T.Vector3(...pb)),yaw=(a+b)/2;
    box('rust',length+.03,.12,.14,mid.x,.53,mid.z,yaw);box('iron',length+.03,.12,.14,mid.x,2.37,mid.z,yaw);
-   box('green',length+.03,.50,.16,mid.x,.25,mid.z,yaw);box('ceiling',length+.03,.25,.16,mid.x,2.54,mid.z,yaw);
+   box('darkRust',length+.05,.50,.20,mid.x,.25,mid.z,yaw);box('paint',length+.05,.28,.20,mid.x,2.54,mid.z,yaw);
   }
-  for(let i=0;i<=segments;i+=2){const p=point(angles[i],1.45);box('iron',.055,1.83,.09,p[0],1.45,p[2],-angles[i]);}
-  const scratchGeo=geo.clone();scratchGeo.translate(0,0,-.018);const glaze=new T.Mesh(scratchGeo,new T.MeshBasicMaterial({map:textures.glass||null,color:0x293a42,transparent:true,opacity:.045,depthWrite:false,side:T.DoubleSide}));glaze.material.name='window-glass';specs['window-glass']={texture:'glass',color:0x293a42,emissive:true};root.add(glaze);glaze.userData.zone='8';world.glaze=glaze;
+  for(let i=0;i<segments;i++){
+   const a=point(angles[i],2.43),b=point(angles[i+1],2.43),x=(a[0]+b[0])/2,z=(a[2]+b[2])/2;
+   box('darkRust',Math.hypot(a[0]-b[0],a[2]-b[2])+.055,.045,.23,x,.60,z-.055,(angles[i]+angles[i+1])/2);
+   // Deep head trim makes the connection to the low ceiling unambiguous.
+   box('iron',Math.hypot(a[0]-b[0],a[2]-b[2])+.055,.07,.24,x,2.40,z-.045,(angles[i]+angles[i+1])/2);
+  }
+  for(const a of [angles[0],angles[segments]]){const p=point(a,1.34);box('rust',.18,2.68,.31,p[0],1.34,p[2]-.01,a);for(const y of [.30,.75,1.2,1.65,2.1,2.5])cyl('iron',.022,.022,.02,p[0],y,p[2]-.18,6,root,[Math.PI/2,0,0]);}
+  for(let i=0;i<=segments;i+=2){const p=point(angles[i],1.45);box('iron',.055,1.83,.09,p[0],1.45,p[2],angles[i]);}
+  const scratchGeo=geo.clone();scratchGeo.translate(0,0,-.018);const glaze=new T.Mesh(scratchGeo,new T.MeshBasicMaterial({map:textures.glass||null,color:0x617c98,fog:false,transparent:true,opacity:.016,depthWrite:false,side:T.DoubleSide}));glaze.material.name='window-glass';specs['window-glass']={texture:'glass',color:0x293a42,emissive:true};root.add(glaze);glaze.userData.zone='8';world.glaze=glaze;
   // A heavy railing keeps the player inside the pressure boundary.
   beam('iron',[WINDOW.cx-WINDOW.width/2,.91,22.40],[WINDOW.cx+WINDOW.width/2,.91,22.40],.032);
   for(let x=WINDOW.cx-WINDOW.width/2;x<=WINDOW.cx+WINDOW.width/2+.01;x+=2)beam('iron',[x,0,22.40],[x,.91,22.40],.026);
@@ -346,7 +382,7 @@ export function buildStation(textures={}){
   if(lampFault)for(const l of world.lamps)if(l.userData.spec?.zone==='7')l.intensity*=flickerAllowed?.65+.15*Math.sin(t*8.9)+.10*Math.sin(t*14.7):.65;
 
   for(const a of indicators){if(a.key==='pulse'){a.mesh.material=state.job?.kind==='calibrate'&&Math.floor(t*9)%3===0?materials.ledGreen:materials.phosphor;}else if(a.key==='sensor'||a.key==='servers'||a.key==='control'){a.mesh.material=state.power?(state.fault&&!state.repaired?materials.ledAmber:materials.ledGreen):materials.black;}else a.mesh.material=materials.ledGreen;}
-  for(const a of moving){a.mesh.rotation.z=a.key==='isolator'?(state.power?-.45:.45):a.key==='voltage'?(state.power?-.50+(state.controls?.voltageTrim||0)*.12:-1.25):a.key==='response'?(state.calibrated?.45:-.8):-.1;}
+  for(const a of moving){if(a.key==='shutter'){a.mesh.position.y=state.controls.shutterClosed?1.10:1.48;continue;}a.mesh.rotation.z=a.key==='isolator'?(state.power?-.45:.45):a.key==='voltage'?(state.power?-.50+(state.controls?.voltageTrim||0)*.12:-1.25):a.key==='response'?(state.calibrated?.45:-.8):-.1;}
   iceUniforms.uTime.value=t;
  };
  return world;

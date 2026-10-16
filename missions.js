@@ -1,11 +1,11 @@
-import {makeEvent,rng,acquisitionTrial,HISTORY} from './science.js?v=3.0';
-import {directorState,directorTick,FAULTS,fault,clearFault,detectorCondition} from './director.js?v=3.0';
-export {makeEvent,reconstruct} from './science.js?v=3.0';
+import {makeEvent,rng,acquisitionTrial,HISTORY} from './science.js?v=3.1';
+import {directorState,directorTick,FAULTS,fault,clearFault,detectorCondition} from './director.js?v=3.1';
+export {makeEvent,reconstruct} from './science.js?v=3.1';
 export const SAVE_KEY='umbral-v3-turno';
 export const MISSION_NAMES=['PRIMER TURNO','RECONOCIMIENTO','LÍNEA SIN RESPUESTA','REPARACIÓN DEL ENLACE','SINCRONIZACIÓN','CALIBRACIÓN LUMINOSA','SELECCIÓN DE SEÑALES','ARCHIVO HISTÓRICO','EVENTO INUSUAL','PREPARAR LOS DATOS','OBSERVACIÓN PROFUNDA','RECONSTRUCCIÓN','ESTACIÓN EN SERVICIO'];
-const controls=()=>({syncTrim:0,voltageTrim:0,load:false,multiplicity:2,windowNs:2200,notch:false,fanTrim:5,relayPower:true,commChannel:1,pipeFlow:.8,tempTrim:0,tempReference:false,lampTrim:5,pulseLevel:5});
+const controls=()=>({syncTrim:0,voltageTrim:0,load:false,multiplicity:2,windowNs:2200,notch:false,fanTrim:5,relayPower:true,commChannel:1,pipeFlow:.8,tempTrim:0,tempReference:false,lampTrim:5,pulseLevel:5,moduleTravel:0,pulseConnected:false,shutterClosed:false,paperTravel:0,spareSeated:false,archiveIndex:1});
 const fresh=()=>{const seed=(Date.now()^Math.floor(Math.random()*4294967295))>>>0;return {version:3,mission:1,phase:0,time:0,seed,visited:[],completed:[],briefed:false,mapOwned:false,supplyChecked:false,supervision:false,warningAt:null,power:true,fault:false,diagnosed:false,connectionChecked:false,moduleSeated:false,repaired:false,syncOffset:11.5,baseVoltage:24,tempOffset:0,sync:null,calibrated:false,calibration:null,acquisition:null,trial:null,benchTest:false,historyViewed:[],historical:null,candidateAt:null,event:null,events:[],serial:0,healthChecked:false,preliminary:false,records:0,bundleReady:false,analysisUnlocked:false,armed:false,observed:false,flash:null,review:0,report:null,job:null,controls:controls(),director:directorState(seed^0xa36129),log:[],position:null,nextAcquisition:0};};
-const LIMITS={syncTrim:[-30,30,.5],voltageTrim:[-2,2,.1],multiplicity:[2,8,1],windowNs:[400,2400,100],fanTrim:[0,10,.25],commChannel:[1,6,1],pipeFlow:[0,1,.05],tempTrim:[-8,8,.25],lampTrim:[0,10,.25],pulseLevel:[1,10,1]};
+const LIMITS={syncTrim:[-30,30,.5],voltageTrim:[-2,2,.1],multiplicity:[2,8,1],windowNs:[400,2400,100],fanTrim:[0,10,.25],commChannel:[1,6,1],pipeFlow:[0,1,.05],tempTrim:[-8,8,.25],lampTrim:[0,10,.25],pulseLevel:[1,10,1],moduleTravel:[0,1,.05],paperTravel:[0,1,.05],archiveIndex:[1,3,1]};
 export class Missions{
  constructor(saved=null,onNotice=()=>{}){
   this.state=fresh();this.onNotice=onNotice;this.revision=0;this.observeWait=0;
@@ -13,6 +13,8 @@ export class Missions{
    const defaults=this.state;this.state={...defaults,...JSON.parse(JSON.stringify(saved)),controls:{...defaults.controls,...saved.controls},director:{...defaults.director,...saved.director}};
    const s=this.state;s.flash=null;s.time=Math.max(0,s.time);s.events=(s.events||[]).slice(-12);s.log=(s.log||[]).slice(-50);s.visited=s.visited.filter(v=>typeof v==='string');
    for(const [k,[lo,hi]]of Object.entries(LIMITS))s.controls[k]=Math.max(lo,Math.min(hi,Number.isFinite(s.controls[k])?s.controls[k]:defaults.controls[k]));
+   if(saved.controls?.pulseConnected===undefined&&s.calibration?.passed){s.controls.pulseConnected=true;s.controls.shutterClosed=true;}
+   if(saved.controls?.moduleTravel===undefined&&s.moduleSeated)s.controls.moduleTravel=1;
    if(s.job&&!['reseat','bench','sync','calibrate','acquire','report'].includes(s.job.kind))s.job=null;
    if(s.position&&!['x','z','yaw','pitch'].every(k=>Number.isFinite(s.position[k])))s.position=null;
   }
@@ -31,7 +33,7 @@ export class Missions{
   if(s.mission===9&&!s.event&&s.candidateAt!==null&&s.time>=s.candidateAt&&s.power&&s.repaired){this.addEvent();this.note('CONTROL · Coincidencia inusual registrada. Comprobar instrumentos.');}
   if(s.mission===13&&s.supervision&&s.acquisition&&s.time>=s.nextAcquisition){s.nextAcquisition=s.time+(65+(s.seed%181))/Math.max(.4,s.acquisition.retained);if(this.condition().efficiency>.65){this.addEvent();this.note('Adquisición: nuevo candidato en la memoria de Análisis.',true);}}
   if(s.armed&&!s.observed&&!s.flash&&canObserve){this.observeWait+=dt;if(this.observeWait>=1.6){s.flash={elapsed:0,u:canObserve.u??.5,v:canObserve.v??.5};this.revision++;}}else if(!canObserve)this.observeWait=0;
-  if(s.flash){s.flash.elapsed+=dt;if(s.flash.elapsed>=1.02){s.flash=null;s.armed=false;s.observed=true;if(s.mission===11)this.next(12);this.note('Consulta óptica registrada. Completa la reconstrucción en Análisis.',true);}}
+  if(s.flash){s.flash.elapsed+=dt;if(s.flash.elapsed>=1.2){s.flash=null;s.armed=false;s.observed=true;if(s.mission===11)this.next(12);this.note('Consulta óptica registrada. Completa la reconstrucción en Análisis.',true);}}
  }
  finish(job){const s=this.state,c=this.condition();
   if(job.kind==='reseat'){s.moduleSeated=true;this.note('Módulo asentado. Comprueba el cierre y restablece alimentación.');}
@@ -56,29 +58,34 @@ export class Missions{
    if(s.mission===12){this.next(13);s.nextAcquisition=s.time+95;}this.note('INFORME REGISTRADO · Primer turno completo. La estación continúa en servicio.');
   }
  }
- adjust(key,value){const s=this.state,l=LIMITS[key];if(!l||s.job)return false;const [lo,hi,step]=l,v=Math.round(Math.max(lo,Math.min(hi,value))/step)*step;if(v===s.controls[key])return true;s.controls[key]=+v.toFixed(3);
+ adjust(key,value){const s=this.state,l=LIMITS[key];if(!l||s.job)return false;if(key==='moduleTravel'&&(s.power||!s.connectionChecked))return false;const [lo,hi,step]=l,v=Math.round(Math.max(lo,Math.min(hi,value))/step)*step;if(v===s.controls[key])return true;s.controls[key]=+v.toFixed(3);
   if(key==='syncTrim'){if(s.sync)s.sync.passed=false;s.calibrated=false;if(s.calibration)s.calibration.passed=false;}if(['multiplicity','windowNs'].includes(key))s.trial=null;this.revision++;return true;
  }
  act(action,context={}){
   const s=this.state,c=s.controls,physical=context.physical===true;
   if(s.job)return 'Procedimiento en curso. Los mandos quedan enclavados hasta terminar.';
-  const physicalOnly=['briefing','isolate','inspectLink','reseat','restore','syncTest','loadToggle','notchToggle','acqTest','acqAccept','relayPower','relayReplace','commReset','tempReference','printerFeed'];
+  const physicalOnly=['briefing','isolate','inspectLink','reseat','restore','syncTest','loadToggle','notchToggle','acqTest','acqAccept','relayPower','relayReplace','commReset','tempReference','printerFeed','pulseConnect','shutterToggle','spareConnect','bench','archiveRead','archiveSelect'];
   if((physicalOnly.includes(action)||action.startsWith('verify:')||action.startsWith('inspect:'))&&!physical)return 'Opera el equipo físico de esta sala.';
   if(action==='briefing'){s.briefed=true;this.note('Turno recibido. Recoge el plano de la pared en Acceso.');this.progress();return 'WASD / ratón o joystick / arrastre. E para operar. Busca el plano físico.';}
   if(action==='pickupMap'){if(s.mapOwned)return 'Ya llevas el plano.';s.mapOwned=true;this.note('Plano recogido. M / botón de papel para consultarlo.');this.progress();return 'Plano de la instalación guardado.';}
   if(action==='supervision'){if(s.mission<2)return 'Recibe el turno y recoge el plano en Acceso.';s.supervision=true;this.progress();return this.note('Supervisión general activa. Revisa Taller, Control y Calibración.');}
   if(action==='diagnose'){if(!s.fault)return s.repaired?'Línea 17 restablecida.':'La supervisión aún no registra pérdida de datos.';s.diagnosed=true;if(s.mission===3)this.next(4);return this.note('Canal 17: contacto inestable del receptor. Panel ENLACE en Servidores.');}
-  if(action==='isolate'){if(!s.diagnosed)return 'Primero identifica la línea en Control.';if(s.repaired)return 'Enlace reparado; intervención principal cerrada.';s.power=false;s.connectionChecked=false;this.revision++;return this.note('Alimentación aislada. Ahora inspecciona las conexiones.');}
+  if(action==='isolate'){if(!s.diagnosed)return 'Primero identifica la línea en Control.';if(s.repaired)return 'Enlace reparado; intervención principal cerrada.';s.power=false;s.connectionChecked=false;s.controls.moduleTravel=0;this.revision++;return this.note('Alimentación aislada. Ahora inspecciona las conexiones.');}
   if(action==='inspectLink'){if(s.power)return 'INTERBLOQUEO: aísla alimentación.';s.connectionChecked=true;this.revision++;return 'Pestaña suelta en el conector 17. Reasienta el módulo.';}
-  if(action==='reseat'){if(s.power)return 'INTERBLOQUEO: no se manipula un receptor alimentado.';if(!s.connectionChecked)return 'Inspecciona primero las conexiones aisladas.';return this.start('reseat',3.5);}
+  if(action==='reseat'){if(s.power)return 'INTERBLOQUEO: no se manipula un receptor alimentado.';if(!s.connectionChecked)return 'Inspecciona primero las conexiones aisladas.';if(s.controls.moduleTravel<.95)return 'Desliza la corredera del módulo hasta el tope antes de fijarlo.';return this.start('reseat',3.5);}
   if(action==='restore'){if(!s.diagnosed)return 'No hay intervención autorizada.';s.power=true;s.repaired=s.moduleSeated&&s.connectionChecked;s.fault=!s.repaired;this.revision++;if(s.repaired){if(s.mission===4)this.next(5);return this.note('Enlace estable. Ajusta el reloj en el osciloscopio de Calibración.');}return 'Fallo persistente. Aísla, inspecciona y reasienta en ese orden.';}
   if(action==='syncTest'){if(!s.repaired)return 'Se necesita un enlace reparado.';return this.start('sync',2.5);}
-  if(action==='calibrate'){if(s.mission<6||!s.sync?.passed)return 'Ajusta y verifica primero el osciloscopio.';return this.start('calibrate',6.4);}
-  if(action==='bench')return this.start('bench',2.8);
+  if(action==='pulseConnect'){c.pulseConnected=!c.pulseConnected;this.revision++;return c.pulseConnected?'Conector encajado en el emisor.':'Emisor desconectado.';}
+  if(action==='shutterToggle'){c.shutterClosed=!c.shutterClosed;this.revision++;return c.shutterClosed?'Cámara óptica cerrada.':'Obturador abierto. La prueba queda interbloqueada.';}
+  if(action==='calibrate'){if(s.mission<6||!s.sync?.passed)return 'Ajusta y verifica primero el osciloscopio.';if(!c.pulseConnected||!c.shutterClosed)return 'Banco óptico: encaja el conector y cierra el obturador antes de emitir.';return this.start('calibrate',6.4);}
+  if(action==='spareConnect'){c.spareSeated=!c.spareSeated;s.benchTest=false;this.revision++;return c.spareSeated?'Repuesto encajado. Pulsa MEDIR.':'Zócalo abierto.';}
+  if(action==='bench'){if(!c.spareSeated)return 'Inserta el repuesto en el zócalo del banco.';return this.start('bench',2.8);}
   if(action==='loadToggle'){c.load=!c.load;this.revision++;return c.load?'Carga de prueba conectada.':'Carga auxiliar desconectada.';}
   if(action==='notchToggle'){c.notch=!c.notch;s.trial=null;this.revision++;return c.notch?'Filtro de interferencia de red activo.':'Filtro de red desconectado.';}
   if(action==='acqTest'){if(!s.calibration?.passed)return 'Necesitas una prueba luminosa válida.';return this.start('acquire',4);}
   if(action==='acqAccept'){if(!s.trial?.accepted)return 'Ejecuta una prueba válida. Recomendación: 4–5 coincidencias, 1000–1400 ns.';s.acquisition={...s.trial,time:s.time};if(s.mission===7)this.next(8);return this.note('Criterios guardados. Compara referencias en Archivo.');}
+  if(action==='archiveRead'){const id=['A','B','C'][c.archiveIndex-1];return this.act('history:'+id);}
+  if(action==='archiveSelect'){const id=['A','B','C'][c.archiveIndex-1];return this.act('reference:'+id);}
   if(action.startsWith('history:')){const id=action.split(':')[1];if(!HISTORY.some(h=>h.id===id))return 'Registro no encontrado.';if(!s.historyViewed.includes(id))s.historyViewed.push(id);this.revision++;return 'Registro histórico consultado.';}
   if(action.startsWith('reference:')){if(s.mission<8)return 'Completa primero la adquisición.';const id=action.split(':')[1],h=HISTORY.find(h=>h.id===id);if(s.historyViewed.length<2)return 'Compara al menos dos registros antes de elegir.';if(!h?.good)return 'Ese conjunto tiene una anomalía documentada. Escoge una referencia estable.';s.historical=id;if(s.mission===8){this.next(9);s.candidateAt=s.time+18;}return this.note('Referencia B aceptada. El detector está adquiriendo coincidencias.');}
   if(action==='health'){if(!s.event)return 'El detector está adquiriendo. Aún no hay candidato.';const q=this.condition();if(!q.valid){s.healthChecked=false;return `Comprobar: ${q.sync>1.5||!s.sync?.passed?'sincronía; ':''}${!s.calibration?.passed?'calibración luminosa; ':''}${fault(s,'comms')?'comunicación en Servidores; ':''}${!c.relayPower?'relé aislado en Control; ':''}${Math.abs(q.voltage-24)>=.7?'fuente de Taller; ':''}${q.noise>=.3?'relé o filtro en Control; ':''}consulta los paneles físicos.`;}s.healthChecked=true;this.revision++;if(s.preliminary&&s.mission===9)this.next(10);return 'Instrumentos verificados. Sin fallos conocidos que expliquen la coincidencia.';}
@@ -101,7 +108,7 @@ export class Missions{
   if(action==='relayReplace'){const e=fault(s,'relay');if(!e)return 'Contacto normal.';if(c.relayPower)return 'Corta primero el interruptor local del relé.';if(!s.benchTest)return 'Prueba un repuesto en el banco de Taller.';e.replaced=true;s.benchTest=false;this.revision++;return 'Contacto sustituido. Restablece el interruptor local.';}
   if(action==='commReset'){const e=fault(s,'comms');if(!e)return 'Bucle de comunicación: respuesta normal.';if(c.commChannel!==e.channel)return `Sin respuesta. Placa de ruta: canal ${e.channel}.`;clearFault(s,'comms');return this.note('Comunicación auxiliar recuperada.');}
   if(action==='tempReference'){c.tempReference=!c.tempReference;this.revision++;return c.tempReference?'Sonda patrón conectada: −31.5 °C.':'Sonda patrón desconectada.';}
-  if(action==='printerFeed'){clearFault(s,'printer');this.revision++;return this.note('Papel recogido. Registro de servicio archivado.',true);}
+  if(action==='printerFeed'){if(c.paperTravel<.95)return 'Gira el rodillo hasta liberar la hoja.';c.paperTravel=0;clearFault(s,'printer');this.revision++;return this.note('Papel recogido. Registro de servicio archivado.',true);}
   if(action.startsWith('verify:')){const e=fault(s,type);if(!e)return 'Lectura nominal. No hay avería pendiente.';if(!e.inspected)return 'Inspecciona primero el equipo para identificar la causa.';const ok=type==='fan'?Math.abs(c.fanTrim-e.target)<.3:type==='lamp'?Math.abs(c.lampTrim-e.target)<.3:type==='pipe'?c.pipeFlow>=.35&&c.pipeFlow<=.55:type==='temperature'?c.tempReference&&Math.abs((s.tempOffset||0)+c.tempTrim+e.offset)<.31:false;if(!ok)return FAULTS[type]?.hint||'Comprueba el procedimiento.';if(type==='temperature')s.tempOffset+=e.offset;clearFault(s,type);return this.note(`${FAULTS[type].title}: lectura nominal restaurada.`);}
   return 'Orden no disponible en este equipo.';
  }
@@ -109,9 +116,9 @@ export class Missions{
   s.briefed?'Recoge el plano físico de la pared en Acceso.':'Consulta el panel de turno en Acceso y recoge el plano.',
   !s.supplyChecked?'Revisa la fuente de Taller.':!s.supervision?'Activa la supervisión en Control.':'Reconoce Taller, Control y Calibración.',
   s.fault?'Consulta el diagnóstico de Control.':'Supervisión activa. Explora mientras llegan datos.',
-  s.power?'Panel ENLACE en Servidores: aísla alimentación.':!s.connectionChecked?'Inspecciona conexiones del panel aislado.':!s.moduleSeated?'Reasienta el módulo físico.':'Restablece alimentación del enlace.',
+  s.power?'Panel ENLACE en Servidores: aísla alimentación.':!s.connectionChecked?'Inspecciona conexiones del panel aislado.':!s.moduleSeated?'Desliza la corredera del módulo hasta su asiento.':'Restablece alimentación del enlace.',
   'Calibración: superpone pulsos con la perilla del osciloscopio y mide.',
-  'Ejecuta diez pulsos LED en la consola de Calibración.',
+  'Banco óptico de Calibración: conecta el emisor, cierra el obturador y emite diez pulsos.',
   'Panel de Control: ajusta coincidencias / ventana, prueba y acepta.',
   'Archivo: compara dos conjuntos y elige una referencia estable.',
   !s.event?'Detector adquiriendo. Explora; espera una coincidencia.':'Control: comprueba instrumentos y examina la coincidencia.',

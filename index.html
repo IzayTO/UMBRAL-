@@ -5,9 +5,9 @@
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
   <meta name="theme-color" content="#151510">
   <meta name="description" content="UMBRAL V3. Una estación bajo el hielo. Horror ambiental lo-fi y un primer turno de investigación.">
-  <title>UMBRAL — versión 3</title>
+  <title>UMBRAL — versión 3.1</title>
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' fill='%23161511'/%3E%3Cpath d='M16 52V12h32v40M25 52V21h14v31' fill='none' stroke='%23aca07a' stroke-width='5'/%3E%3C/svg%3E">
-  <link rel="stylesheet" href="style.css?v=3.0">
+  <link rel="stylesheet" href="style.css?v=3.1">
 </head>
 <body>
   <main id="experience" aria-label="Experiencia de horror ambiental UMBRAL">
@@ -16,13 +16,17 @@
     <div id="hud" hidden>
       <button id="pause" class="small-button" aria-label="Pausar y abrir ajustes">Ⅱ</button>
       <button id="map-toggle" class="small-button" hidden aria-label="Consultar plano portátil">▤</button>
-      <button id="task-note" aria-label="Recordar tarea actual">TURNO</button>
+      <button id="task-note" aria-label="Desplegar misión actual" aria-expanded="false" aria-controls="mission-panel">TURNO <span aria-hidden="true">⌄</span></button>
+      <aside id="mission-panel" hidden aria-label="Misión actual y siguiente"><div id="mission-cards"></div><button id="mission-all">ABRIR REGISTRO <span aria-hidden="true">↳</span></button></aside>
       <button id="interact" hidden aria-label="Operar el equipo o salir de la consola">E · OPERAR</button>
       <div id="reticle" aria-hidden="true"></div>
       <div id="move-zone" aria-label="Joystick para caminar"><div id="stick"><span id="stick-knob"></span></div></div>
-      <div id="hint" role="status"></div>
+
     </div>
     <section id="map-sheet" hidden role="dialog" aria-modal="true" aria-label="Plano portátil de la estación"><canvas id="plan" aria-label="Plano de ocho habitaciones y posición actual"></canvas><button id="map-close" class="primary">PLEGAR PLANO <span>M / E / ESC</span></button></section>
+    <section id="mission-sheet" hidden role="dialog" aria-modal="true" aria-labelledby="ledger-title"><div class="ledger-shell"><header><div><span class="mission-kicker">UMBRAL / CUADERNO DE SERVICIO</span><h2 id="ledger-title">Primer turno</h2></div><button id="mission-close" aria-label="Cerrar registro">×</button></header><div class="ledger-progress"><span id="mission-count"></span><div class="ledger-track"><i id="mission-progress"></i></div></div><div id="mission-list"></div><footer>DESPLIEGA UN REGISTRO PARA CONSULTAR EL PROCEDIMIENTO <span>J / ESC</span></footer></div></section>
+    <div id="hint" role="status" hidden></div>
+    <div id="instrument-guide" hidden aria-live="polite"><span id="instrument-guide-name"></span><strong id="instrument-reading"></strong><p id="instrument-guide-purpose"></p><small id="instrument-guide-gesture"></small></div>
     <section id="menu" aria-label="Menú principal">
       <div class="menu-grain" aria-hidden="true"></div>
       <div class="menu-content">
@@ -43,11 +47,11 @@
           <button id="new-turn" class="text-button secondary" hidden>REINICIAR EL TURNO COMPLETO ↺</button>
           <button id="restart" class="text-button secondary" hidden>VOLVER AL PUNTO INICIAL ↺</button>
         </div>
-        <p id="controls" class="controls">W A S D &nbsp; CAMINAR<br>RATÓN &nbsp; MIRAR &nbsp; · &nbsp; ESC &nbsp; PAUSA<br>E &nbsp; OPERAR &nbsp; · &nbsp; J &nbsp; RECORDAR TAREA<br>M &nbsp; PLANO RECOGIDO</p>
+        <p id="controls" class="controls">W A S D &nbsp; CAMINAR<br>RATÓN &nbsp; MIRAR &nbsp; · &nbsp; ESC &nbsp; PAUSA<br>E &nbsp; OPERAR &nbsp; · &nbsp; J &nbsp; REGISTRO DE TURNO<br>M &nbsp; PLANO RECOGIDO</p>
         <p class="sound-note">Mejor con audífonos, a volumen moderado.</p>
         <p id="load-status" class="load-status" role="status" aria-live="polite">Preparando la estación…</p>
       </div>
-      <div class="menu-footer"><span>PRIMER TURNO</span><span>V 3.0</span></div>
+      <div class="menu-footer"><span>PRIMER TURNO</span><span>V 3.1</span></div>
     </section>
     <section id="fatal" hidden role="alert">
       <p class="edition">UMBRAL / NO SE PUDO INICIAR</p>
@@ -63,6 +67,6 @@
     if(location.protocol==='file:')window.umbralError('Abre esta experiencia desde la dirección HTTPS de GitHub Pages. La vista previa de Archivos del iPhone no ejecuta el juego.');
     window.addEventListener('error',function(e){if(!window.umbralReady&&e.message)window.umbralError('No se pudo cargar un archivo. Comprueba que hayas subido todos los archivos juntos y vuelve a abrir la página.');});
   </script>
-  <script type="module" src="game.js?v=3.0"></script>
+  <script type="module" src="game.js?v=3.1"></script>
 </body>
 </html>

@@ -1,4 +1,4 @@
-import {HISTORY} from './science.js?v=3.0';
+import {HISTORY} from './science.js?v=3.1';
 export function consoleContent(controller,t,c,time,{line,lines,wrap,GREEN,DIM}){
  const s=controller.missions.state,e=s.event,q=controller.missions.condition(),back=['REGRESAR','page:home'];
  if(t.page==='science'){
@@ -37,6 +37,6 @@ export function consoleContent(controller,t,c,time,{line,lines,wrap,GREEN,DIM}){
  if(t.id==='observation'){
   lines(s.bundleReady?[`REGISTRO ${e?.id||'—'}`,s.observed?'Consulta óptica archivada.':'Prepara la consulta y mira al hielo.','Destellos: representación artística','de luz de partículas secundarias.','No son neutrinos visibles.']:['OBSERVACIÓN / REGISTRO EN ESPERA','Falta el expediente validado.','Hielo profundo; visibilidad mínima.','El sistema continúa registrando.'],85,24);return [['CONSULTAR EVENTO','observe'],['NOTA CIENTÍFICA','page:science'],['BITÁCORA','page:logs']];
  }
- if(t.id==='workshop'){lines(['BANCO DE CONTINUIDAD / REPUESTOS',s.benchTest?'Reserva: 0.3 ohm / comprobada.':'Repuesto pendiente de prueba.','El panel de suministro está al norte.','Repuestos para contactos de relé.','Receptor 17: intervención en Servidores.'],85,24);return [['PROBAR REPUESTO','bench'],['BITÁCORA','page:logs'],['PRINCIPIO FÍSICO','page:science']];}
+ if(t.id==='workshop'){lines(['BANCO DE CONTINUIDAD / REPUESTOS',s.benchTest?'Reserva: 0.3 ohm / comprobada.':'Repuesto pendiente de prueba.','Banco físico: pared oeste del Taller.','Repuestos para contactos de relé.','Receptor 17: intervención en Servidores.'],85,24);return [['DÓNDE PROBAR','bench'],['BITÁCORA','page:logs'],['PRINCIPIO FÍSICO','page:science']];}
  return [back];
 }

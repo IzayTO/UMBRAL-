@@ -1,15 +1,15 @@
 import * as T from './three.module.min.js';
-import {lineBlocked} from './station.js?v=3.0';
-import {consoleContent} from './console-content.js?v=3.0';
+import {lineBlocked} from './station.js?v=3.1';
+import {consoleContent} from './console-content.js?v=3.1';
 const W=512,H=336,GREEN='#8caa79',DIM='#51664c',AMBER='#b5a474';
 const clock=s=>`${String(Math.floor(s/60)).padStart(2,'0')}:${String(Math.floor(s%60)).padStart(2,'0')}`;
 const wrap=(ctx,text,x,y,max=468,line=22)=>{let row='';for(const word of text.split(' ')){if(ctx.measureText(row+word).width>max&&row){ctx.fillText(row,x,y);y+=line;row='';}row+=word+' ';}if(row){ctx.fillText(row,x,y);y+=line;}return y;};
 export class Terminals{
  constructor(world,missions,canvas,camera,{open,close,notice,tone,save}){
   this.world=world;this.missions=missions;this.canvas=canvas;this.camera=camera;this.callbacks={open,close,notice,tone,save};this.active=null;this.candidate=null;this.lastPaint=-1;this.ray=new T.Raycaster();this.cursor=new T.Vector2();this.selected=0;
-  for(const t of world.terminals){t.canvas=document.createElement('canvas');t.canvas.width=W;t.canvas.height=H;t.ctx=t.canvas.getContext('2d',{alpha:false});t.texture=new T.CanvasTexture(t.canvas);t.texture.colorSpace=T.SRGBColorSpace;t.texture.magFilter=T.NearestFilter;t.texture.minFilter=T.NearestFilter;t.texture.generateMipmaps=false;t.screen.material.map=t.texture;t.screen.material.color.setHex(0xffffff);t.screen.material.needsUpdate=true;t.page='home';t.message='';t.buttons=[];this.paint(t,0);}
-  canvas.addEventListener('pointerdown',e=>{if(!this.active)return;e.preventDefault();this.cursor.set(e.clientX/innerWidth*2-1,1-e.clientY/innerHeight*2);this.ray.setFromCamera(this.cursor,camera);const hit=this.ray.intersectObject(this.active.screen)[0];if(hit?.uv){const x=hit.uv.x*W,y=(1-hit.uv.y)*H,i=this.active.buttons.findIndex(b=>x>=b.x&&x<=b.x+b.w&&y>=b.y&&y<=b.y+b.h);if(i>=0)this.choose(i);}});
-  window.addEventListener('keydown',e=>{if(!this.active||e.repeat)return;if(['Escape','KeyE'].includes(e.code)){e.preventDefault();this.leave();return;}if(e.code==='Tab'||e.code==='ArrowDown'||e.code==='ArrowRight'){e.preventDefault();this.selected=(this.selected+1)%Math.max(1,this.active.buttons.length);this.paint(this.active,this.now||0);}else if(e.code==='ArrowUp'||e.code==='ArrowLeft'){e.preventDefault();this.selected=(this.selected+this.active.buttons.length-1)%Math.max(1,this.active.buttons.length);this.paint(this.active,this.now||0);}else if(e.code==='Enter'||e.code==='Space'){e.preventDefault();this.choose(this.selected);}else if(/^Digit[1-4]$/.test(e.code)){e.preventDefault();this.choose(Number(e.code.slice(-1))-1);}});
+  for(const t of world.terminals){t.canvas=document.createElement('canvas');t.canvas.width=W;t.canvas.height=H;t.ctx=t.canvas.getContext('2d',{alpha:false});t.texture=new T.CanvasTexture(t.canvas);t.texture.colorSpace=T.SRGBColorSpace;t.texture.magFilter=T.NearestFilter;t.texture.minFilter=T.LinearFilter;t.texture.generateMipmaps=false;t.screen.material.fog=false;t.screen.material.map=t.texture;t.screen.material.color.setHex(0xffffff);t.screen.material.needsUpdate=true;t.page='home';t.message='';t.buttons=[];this.paint(t,0);}
+  canvas.addEventListener('pointerdown',e=>{if(!this.active||this.suspended)return;e.preventDefault();this.cursor.set(e.clientX/innerWidth*2-1,1-e.clientY/innerHeight*2);this.ray.setFromCamera(this.cursor,camera);const hit=this.ray.intersectObject(this.active.screen)[0];if(hit?.uv){const x=hit.uv.x*W,y=(1-hit.uv.y)*H,i=this.active.buttons.findIndex(b=>x>=b.x&&x<=b.x+b.w&&y>=b.y&&y<=b.y+b.h);if(i>=0)this.choose(i);}});
+  window.addEventListener('keydown',e=>{if(!this.active||this.suspended||e.defaultPrevented||e.repeat)return;if(['Escape','KeyE'].includes(e.code)){e.preventDefault();this.leave();return;}if(e.code==='Tab'||e.code==='ArrowDown'||e.code==='ArrowRight'){e.preventDefault();this.selected=(this.selected+1)%Math.max(1,this.active.buttons.length);this.paint(this.active,this.now||0);}else if(e.code==='ArrowUp'||e.code==='ArrowLeft'){e.preventDefault();this.selected=(this.selected+this.active.buttons.length-1)%Math.max(1,this.active.buttons.length);this.paint(this.active,this.now||0);}else if(e.code==='Enter'||e.code==='Space'){e.preventDefault();this.choose(this.selected);}else if(/^Digit[1-4]$/.test(e.code)){e.preventDefault();this.choose(Number(e.code.slice(-1))-1);}});
  }
  find(player){
   if(this.active)return this.active;const forward=this.camera.getWorldDirection(new T.Vector3());let best=null,score=0;
@@ -33,7 +33,7 @@ export class Terminals{
  }
  paint(t,time){
   const c=t.ctx,s=this.missions.state,active=this.active===t;let buttons=[];
-  c.fillStyle='#0b160e';c.fillRect(0,0,W,H);c.strokeStyle='#344833';c.lineWidth=2;c.strokeRect(8,8,W-16,H-16);
+  c.fillStyle='#020605';c.fillRect(0,0,W,H);c.strokeStyle='#344833';c.lineWidth=2;c.strokeRect(8,8,W-16,H-16);
   c.font='bold 15px Courier New,monospace';c.fillStyle=GREEN;c.fillText(`UMBRAL / ${t.title}`,20,31);
   c.font='13px Courier New,monospace';c.fillStyle=DIM;c.fillText(`TURNO 01   ${clock(s.time)}                 ${s.power?'ENLACE +':'ENLACE -'}`,20,51);c.fillRect(20,60,472,1);
   c.font='17px Courier New,monospace';c.fillStyle=GREEN;
@@ -41,14 +41,14 @@ export class Terminals{
   const lines=(arr,y=87,step=23)=>arr.forEach((txt,i)=>line(txt,y+i*step));
   buttons=consoleContent(this,t,c,time,{line,lines,wrap,GREEN,DIM});
   if(s.job&&((s.job.kind==='reseat'&&t.id==='servers')||(s.job.kind==='calibrate'&&t.id==='calibration')||(s.job.kind==='bench'&&t.id==='workshop')||(s.job.kind==='report'&&t.id==='analysis'))){
-   c.fillStyle='#0b160e';c.fillRect(18,181,476,42);c.fillStyle=DIM;c.fillRect(22,203,466,6);c.fillStyle=GREEN;c.fillRect(22,203,466*(1-s.job.remaining/s.job.total),6);c.font='14px Courier New,monospace';c.fillText(`PROCEDIMIENTO ${Math.ceil(s.job.remaining)} s`,22,195);
+   c.fillStyle='#020605';c.fillRect(18,181,476,42);c.fillStyle=DIM;c.fillRect(22,203,466,6);c.fillStyle=GREEN;c.fillRect(22,203,466*(1-s.job.remaining/s.job.total),6);c.font='14px Courier New,monospace';c.fillText(`PROCEDIMIENTO ${Math.ceil(s.job.remaining)} s`,22,195);
   }
-  if(t.message&&active&&!s.job&&time<(t.messageUntil||0)){c.fillStyle='#152318';c.fillRect(15,165,482,60);c.font='14px Courier New,monospace';c.fillStyle=AMBER;wrap(c,t.message,22,182,468,17);}
+  if(t.message&&active&&!s.job&&time<(t.messageUntil||0)){c.fillStyle='#050a08';c.fillRect(15,165,482,60);c.font='14px Courier New,monospace';c.fillStyle=AMBER;wrap(c,t.message,22,182,468,17);}
   t.buttons=buttons.map(([label,action],i)=>{const x=20+(i%2)*240,y=232+Math.floor(i/2)*47,w=232,h=40;
-   c.fillStyle=active&&i===this.selected?'#263a26':'#142217';c.fillRect(x,y,w,h);c.strokeStyle=active&&i===this.selected?GREEN:DIM;c.lineWidth=1;c.strokeRect(x+.5,y+.5,w-1,h-1);c.fillStyle=GREEN;c.font='bold 14px Courier New,monospace';c.fillText(`${i+1} ${label}`,x+8,y+24);return {label,action,x,y,w,h};});
+   c.fillStyle=active&&i===this.selected?'#102018':'#040a07';c.fillRect(x,y,w,h);c.strokeStyle=active&&i===this.selected?GREEN:DIM;c.lineWidth=1;c.strokeRect(x+.5,y+.5,w-1,h-1);c.fillStyle=GREEN;c.font='bold 14px Courier New,monospace';c.fillText(`${i+1} ${label}`,x+8,y+24);return {label,action,x,y,w,h};});
   c.font='11px Courier New,monospace';c.fillStyle=DIM;c.fillText(active?'TOCA UNA TECLA / 1–4 · E SALIR':'CONSOLA LOCAL / ACÉRCATE PARA OPERAR',20,327);
   // Soft phosphor persistence and scanlines exist in the screen texture, not a web panel.
-  c.fillStyle='rgba(0,0,0,.08)';for(let y=1;y<H;y+=3)c.fillRect(0,y,W,1);t.texture.needsUpdate=true;
+  c.fillStyle='rgba(0,0,0,.025)';for(let y=1;y<H;y+=3)c.fillRect(0,y,W,1);t.texture.needsUpdate=true;
  }
  graph(c,event,fit){
   const proj=p=>[255+p[0]*.60+p[2]*.24,151-p[1]*.31+p[2]*.035];
