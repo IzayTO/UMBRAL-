@@ -1,5 +1,5 @@
 import * as T from './three.module.min.js';
-import {boundsOf} from './layout.js?v=3.1';
+import {boundsOf} from './layout.js?v=3.1.1';
 
 // Physical instruments added to the existing station before static batching.
 // Screen contents and actions belong to the simulation/controller, not this file.
@@ -106,7 +106,7 @@ export function installEquipment(world,h){
    box(style==='scope'?'paint':style==='link'?'iron':'green',w,h,style==='scope'?.35:.16,0,0,style==='scope'?-.08:0,0,g);
    for(const sx of [-1,1])box('rust',.025,h+.02,.035,sx*(w/2-.008),0,.075,0,g);
    for(const sy of [-1,1])box('iron',w+.025,.018,.025,0,sy*h/2,.082,0,g);
-   const sw=style==='link'?.76:style==='scope'?.72:style==='optical'?.73:Math.min(.62,w-.15),sh=style==='link'?.25:style==='scope'?.37:w<.70?.26:.31,sy=style==='link'?.225:style==='scope'?.06:.095;
+   const sw=style==='link'?.76:style==='scope'?.72:style==='optical'?Math.min(.83,w-.14):Math.min(.62,w-.15),sh=style==='link'?.25:style==='scope'?.37:w<.70?.26:.31,sy=style==='link'?.225:style==='scope'?.06:.095;
    box('black',sw+.055,sh+.045,.014,0,sy,.094,0,g);
    for(const sx of [-1,1])box('rust',.014,sh+.04,.019,sx*(sw/2+.014),sy,.106,0,g);
    d.screen=screen(g,id,zone,sw,sh,sy);if(['paper','relay','valve','ballast','tester'].includes(style))d.display='scale';
@@ -126,7 +126,7 @@ export function installEquipment(world,h){
     let xx=(i-(controls.length-1)/2)*spacing,yy=-.224;
     if(style==='link'){xx=[-.37,-.13,.15,.39][i];yy=i===2?-.045:-.29;}
     if(style==='scope'){xx=i===0?.47:.47;yy=i===0?.06:-.20;}
-    if(style==='optical'){xx=[-.55,-.14,.24,.57][i];yy=-.224;}
+    if(style==='optical'){xx=(i-1.5)*(w-.20)/3;yy=-.224;}
     control(g,d,s,xx,yy,w<.65?.85:1);
    });
    if(style==='scope'){
@@ -187,7 +187,7 @@ export function installEquipment(world,h){
  panel({id:'acquisition',zone:'3',title:'ADQUISICIÓN / DISCRIMINADOR',x:7.48,z:2.8,y:1.5,yaw:Math.PI/2},[
   K('multiplicity','multiplicity',2,8,1,'COINCIDENCIA'),K('windowNs','windowNs',400,2400,100,'VENTANA'),S('notchToggle','notchToggle','FILTRO'),B('acqTest','acqTest','PRUEBA'),B('acqAccept','acqAccept','ACEPTAR')]);
 
- panel({id:'pulser',zone:'5',title:'BANCO ÓPTICO / LED',style:'optical',x:18.25,z:4.04,y:1.17,w:1.58,h:.58,desktop:true},[K('pulseLevel','pulseLevel',1,10,1,'NIVEL LED'),{...B('pulseConnect','pulseConnect','CONECTOR'),kind:'plug'},{...S('shutterToggle','shutterToggle','OBTURADOR'),kind:'lever'},B('calibrate','calibrate','EMITIR')]);
+ panel({id:'pulser',zone:'5',title:'BANCO ÓPTICO / LED',style:'optical',x:18.90,z:3.97,y:1.18,w:1.06,h:.58,desktop:true},[K('pulseLevel','pulseLevel',1,10,1,'NIVEL LED'),{...B('pulseConnect','pulseConnect','CONECTOR'),kind:'plug'},{...S('shutterToggle','shutterToggle','OBTURADOR'),kind:'lever'},B('calibrate','calibrate','EMITIR')]);
  const fan=panel({id:'fan',zone:'4',title:'VENTILACIÓN / COJINETE',x:11.5,z:10.27,y:1.7},[
   K('fanTrim','fanTrim',0,10,.25,'AJUSTE'),B('inspect:fan','inspect:fan','INSPECCIÓN'),B('verify:fan','verify:fan','VERIFICAR')]);
  inZone('4',()=>{

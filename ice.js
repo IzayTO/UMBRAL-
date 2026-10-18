@@ -1,6 +1,7 @@
 import * as T from './three.module.min.js';
-import {WINDOW} from './layout.js?v=3.1';
+import {WINDOW} from './layout.js?v=3.1.1';
 // Artistic secondary-particle light, never a directly visible neutrino.
+// Ambient cues are independent of mapOwned, briefing, mission and authorization.
 export const FLASH_SECONDS=1.2;
 export const flashEnvelope=t=>t<0||t>=FLASH_SECONDS?0:t<.04?t/.04:Math.pow(1-(t-.04)/1.16,1.8);
 const radius=WINDOW.width/(2*Math.sin(WINDOW.arc/2));

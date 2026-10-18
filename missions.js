@@ -1,6 +1,6 @@
-import {makeEvent,rng,acquisitionTrial,HISTORY} from './science.js?v=3.1';
-import {directorState,directorTick,FAULTS,fault,clearFault,detectorCondition} from './director.js?v=3.1';
-export {makeEvent,reconstruct} from './science.js?v=3.1';
+import {makeEvent,rng,acquisitionTrial,HISTORY} from './science.js?v=3.1.1';
+import {directorState,directorTick,FAULTS,fault,clearFault,detectorCondition} from './director.js?v=3.1.1';
+export {makeEvent,reconstruct} from './science.js?v=3.1.1';
 export const SAVE_KEY='umbral-v3-turno';
 export const MISSION_NAMES=['PRIMER TURNO','RECONOCIMIENTO','LÍNEA SIN RESPUESTA','REPARACIÓN DEL ENLACE','SINCRONIZACIÓN','CALIBRACIÓN LUMINOSA','SELECCIÓN DE SEÑALES','ARCHIVO HISTÓRICO','EVENTO INUSUAL','PREPARAR LOS DATOS','OBSERVACIÓN PROFUNDA','RECONSTRUCCIÓN','ESTACIÓN EN SERVICIO'];
 const controls=()=>({syncTrim:0,voltageTrim:0,load:false,multiplicity:2,windowNs:2200,notch:false,fanTrim:5,relayPower:true,commChannel:1,pipeFlow:.8,tempTrim:0,tempReference:false,lampTrim:5,pulseLevel:5,moduleTravel:0,pulseConnected:false,shutterClosed:false,paperTravel:0,spareSeated:false,archiveIndex:1});

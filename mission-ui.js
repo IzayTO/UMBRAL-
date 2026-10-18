@@ -1,4 +1,4 @@
-import {MISSION_NAMES} from './missions.js?v=3.1';
+import {MISSION_NAMES} from './missions.js?v=3.1.1';
 export const MISSION_GUIDE=[
  ['01 / ACCESO','Registra tu turno en el equipo de la pared. Recoge el plano cercano; podrás plegarlo y consultarlo durante la exploración.'],
  ['02 · 03 · 05','Revisa la fuente de Taller, visita Control y Calibración. Activa la supervisión desde la terminal de Control.'],

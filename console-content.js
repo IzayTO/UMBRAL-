@@ -1,4 +1,4 @@
-import {HISTORY} from './science.js?v=3.1';
+import {HISTORY} from './science.js?v=3.1.1';
 export function consoleContent(controller,t,c,time,{line,lines,wrap,GREEN,DIM}){
  const s=controller.missions.state,e=s.event,q=controller.missions.condition(),back=['REGRESAR','page:home'];
  if(t.page==='science'){

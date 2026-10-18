@@ -1,4 +1,4 @@
-UMBRAL — versión 3.1
+UMBRAL — versión 3.1.1
 
 El diseño de las habitaciones, geometría, texturas, rótulos, interfaz y síntesis
 sonora son material original del proyecto UMBRAL. La composición de V3.1

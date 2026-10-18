@@ -1,9 +1,9 @@
 import * as T from './three.module.min.js';
-import {lineBlocked} from './station.js?v=3.1';
-import {boundsOf} from './layout.js?v=3.1';
-import {fault,FAULTS} from './director.js?v=3.1';
-import {HISTORY} from './science.js?v=3.1';
-import {controlGuide} from './control-guide.js?v=3.1';
+import {lineBlocked} from './station.js?v=3.1.1';
+import {boundsOf} from './layout.js?v=3.1.1';
+import {fault,FAULTS} from './director.js?v=3.1.1';
+import {HISTORY} from './science.js?v=3.1.1';
+import {controlGuide} from './control-guide.js?v=3.1.1';
 const G='#8caa79',D='#51664c',A='#b5a474';
 export class Instruments{
  constructor(world,missions,canvas,camera,callbacks){

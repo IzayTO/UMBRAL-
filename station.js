@@ -1,7 +1,7 @@
 import * as T from './three.module.min.js';
-import {buildWorld as buildLegacy,TEX as OLD_TEX,batchWorld} from './world.js?v=3.1';
-import {ROOMS,ZONES,PORTALS,LAMP_DATA,START,GLASS,WINDOW,boundsOf,zoneAt,portalPoint} from './layout.js?v=3.1';
-import {installEquipment} from './equipment.js?v=3.1';
+import {buildWorld as buildLegacy,TEX as OLD_TEX,batchWorld} from './world.js?v=3.1.1';
+import {ROOMS,ZONES,PORTALS,LAMP_DATA,START,GLASS,WINDOW,boundsOf,zoneAt,portalPoint} from './layout.js?v=3.1.1';
+import {installEquipment} from './equipment.js?v=3.1.1';
 export {START,LAMP_DATA};
 export const TEX=[...OLD_TEX,...['paint','green','concrete'].flatMap(n=>[2,3,4].map(i=>n+i)),'signs','station-map','glass'];
 
@@ -193,11 +193,11 @@ export function buildStation(textures={}){
   for(let k=0;k<3;k++)beam('wire',[-.20+k*.14,.08,-.31],[-.20+k*.14,2.39,-.31],.016,g);
   solid(x,z,1.08,.68,yaw,'rack');
  });}
- function desk(zone,x,z,yaw=0,w=1.8){inZone(zone,()=>{
+ function desk(zone,x,z,yaw=0,w=1.8,props=true){inZone(zone,()=>{
   const g=group(x,z,yaw);for(let i=0;i<4;i++)box('wood',w,.05,.19,0,.82,-.30+i*.20,0,g);
   for(const xx of [-w/2+.13,w/2-.13])for(const zz of [-.27,.27])box('iron',.05,.8,.05,xx,.4,zz,0,g);
-  box('rust',w+.04,.07,.027,0,.80,.40,0,g);plate(1,1,.26,.35,.12,.85,.02,[-Math.PI/2,0,.16],g);
-  can(g,-w*.30,.85,-.08,.09,.22,'paint');bottle(g,w*.32,.85,-.16);solid(x,z,w+.06,.84,yaw,'desk');
+  box('rust',w+.04,.07,.027,0,.80,.40,0,g);if(props){plate(1,1,.26,.35,.12,.85,.02,[-Math.PI/2,0,.16],g);
+  can(g,-w*.30,.85,-.08,.09,.22,'paint');bottle(g,w*.32,.85,-.16);}solid(x,z,w+.06,.84,yaw,'desk');
  });}
  function storage(zone,x,z,yaw=0,length=1.8){inZone(zone,()=>{
   const g=group(x,z,yaw);for(const xx of [-length/2,length/2])for(const zz of [-.25,.25])box('iron',.045,2.16,.045,xx,1.08,zz,0,g);
@@ -245,13 +245,35 @@ export function buildStation(textures={}){
  });
  // Calibration: enclosed optical bench, LED pulser and spare DOM modules.
  consoleUnit('calibration','5',16.78,.76,0,'CALIBRACIÓN / PULSOS');
- desk('5',18.25,3.80,0,2.42);storage('5',21.55,2.08,-Math.PI/2,1.85);
+ desk('5',18.25,3.80,0,2.42,false);storage('5',21.55,2.08,-Math.PI/2,1.85);
  inZone('5',()=>{
-  const g=group(18.25,3.57,0);cyl('black',.18,.18,1.50,0,1.10,0,12,g,[0,0,Math.PI/2]);
-  for(const xx of [-.75,.75]){cyl('rust',.235,.235,.05,xx,1.10,0,12,g,[0,0,Math.PI/2]);box('iron',.12,.20,.32,xx,.90,0,0,g);}
-  const emitter=new T.Mesh(new T.SphereGeometry(.018,6,4),materials.phosphor);emitter.position.set(-.68,1.13,.16);g.add(emitter);indicators.push({mesh:emitter,key:'pulse'});
-  const shutter=box('iron',.055,.40,.43,.05,1.10,0,0,g);parts.splice(parts.indexOf(shutter),1);moving.push({mesh:shutter,key:'shutter',zone:'5'});
-  cyl('green',.10,.10,.25,.95,.98,-.10,10,g);dial(g,.95,1.02,.06,.20,'response');
+  // A bolted optical bench: chamber, saddles, captive gate and controller share
+  // one bed. The sliding blade always stays inside a continuous physical guide.
+  const g=group(18.25,3.63,0);
+  box('iron',2.27,.036,.64,0,.864,.12,0,g);
+  for(const x of [-1.04,1.04])for(const z of [-.14,.38])cyl('rust',.021,.021,.012,x,.887,z,6,g);
+  const cx=-.34,cy=1.09,half=.63;
+  for(const side of [-1,1]){const length=half-.044;cyl('black',.162,.162,length,cx+side*(.044+length/2),cy,0,12,g,[0,0,Math.PI/2]);}
+  for(const x of [cx-half,cx+half]){
+   cyl('rust',.205,.205,.045,x,cy,0,12,g,[0,0,Math.PI/2]);
+   cyl('iron',.176,.176,.050,x,cy,0,12,g,[0,0,Math.PI/2]);
+   box('iron',.13,.15,.30,x,.958,0,0,g);
+   box('darkRust',.23,.023,.38,x,.895,0,0,g);
+   for(const z of [-.16,.16])cyl('rust',.014,.014,.012,x,.912,z,6,g);
+   for(let k=0;k<6;k++){const a=k*Math.PI/3;cyl('iron',.014,.014,.060,x,cy+Math.sin(a)*.186,Math.cos(a)*.186,6,g,[0,0,Math.PI/2]);}
+  }
+  // The shutter rails sit on the bed and overlap the blade throughout its stroke.
+  for(const z of [-.197,.197])box('rust',.082,.755,.040,cx,1.26,z,0,g);
+  box('iron',.084,.055,.438,cx,1.665,0,0,g);
+  const shutter=box('iron',.026,.34,.355,cx,cy,0,0,g);
+  shutter.castShadow=false;shutter.name='optical-shutter';shutter.userData.closedY=cy;shutter.userData.openY=1.46;
+  parts.splice(parts.indexOf(shutter),1);moving.push({mesh:shutter,key:'shutter',zone:'5'});
+  // Flanged sensor head, indicator and a supported response meter.
+  cyl('green',.105,.105,.16,cx+half+.105,cy,0,10,g,[0,0,Math.PI/2]);
+  beam('wire',[cx+half+.16,cy,.075],[.53,1.00,.15],.010,g);
+  beam('wire',[.53,1.00,.15],[.65,1.01,.27],.010,g);
+  const emitter=new T.Mesh(new T.SphereGeometry(.016,6,4),materials.phosphor);emitter.position.set(cx-half,cy+.04,.179);g.add(emitter);indicators.push({mesh:emitter,key:'pulse'});
+  box('iron',.043,.16,.045,-1.02,.96,.27,0,g);box('paint',.20,.17,.025,-1.02,1.075,.27,0,g);dial(g,-1.02,1.075,.286,.145,'response');
 
   chair(15.35,1.70,-.4);gaugeBoard('5',18.95,.14,0);
  });
@@ -286,14 +308,16 @@ export function buildStation(textures={}){
  precision highp float;varying vec2 vUv;uniform float uTime;uniform float uFlash;uniform float uHollow;uniform float uFlashScale;uniform vec2 uFlashXY;
  float h(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
  void main(){vec2 px=floor(vUv*vec2(768.0,169.0));
- float patch=h(floor(px/vec2(11.0,7.0)));
- float boundary=.79+.016*sin(vUv.x*12.0)+.014*sin(vUv.x*29.0)+.018*(patch-.5);
+ float iceGrain=h(floor(px/vec2(11.0,7.0)));
+ float boundary=.79+.016*sin(vUv.x*12.0)+.014*sin(vUv.x*29.0)+.018*(iceGrain-.5);
  float upper=smoothstep(boundary,1.025,vUv.y+.006*(h(px)-.5));
  vec3 c=mix(vec3(.0007,.0032,.0105),vec3(.0035,.0135,.034),upper);
- c*=.92+.13*patch+.04*h(floor(px/3.0));
- float stratum=pow(max(0.0,sin(vUv.y*75.0+sin(vUv.x*13.0)*.7+patch*.25)),36.0);
+ c*=.92+.13*iceGrain+.04*h(floor(px/3.0));
+ float stratum=pow(max(0.0,sin(vUv.y*75.0+sin(vUv.x*13.0)*.7+iceGrain*.25)),36.0);
  c+=vec3(.00005,.00014,.00024)*stratum;
  float scratch=step(.997,h(vec2(floor(px.x*.3),floor(px.y*.06))));c+=scratch*vec3(.00007,.00014,.00020);
+ // Fixed pixel dither before RGBA8 quantization preserves the dark blue blend.
+ c+=(h(px+vec2(31.0,73.0))-.5)*vec3(.0006,.0030,.0038)*smoothstep(.70,.90,vUv.y);
  vec2 d=(vUv-uFlashXY)/(vec2(.0043,.0195)*uFlashScale);float r=length(d);float spark=mix(exp(-r*r*2.8),exp(-pow((r-.62)*4.2,2.0))*.65,uHollow)*uFlash;
  c+=vec3(.065,.14,.235)*spark;gl_FragColor=vec4(c,1.0);}`});
  iceMaterial.name='deep-ice';materials['deep-ice']=iceMaterial;specs['deep-ice']={color:0x030912,emissive:true};
@@ -382,7 +406,7 @@ export function buildStation(textures={}){
   if(lampFault)for(const l of world.lamps)if(l.userData.spec?.zone==='7')l.intensity*=flickerAllowed?.65+.15*Math.sin(t*8.9)+.10*Math.sin(t*14.7):.65;
 
   for(const a of indicators){if(a.key==='pulse'){a.mesh.material=state.job?.kind==='calibrate'&&Math.floor(t*9)%3===0?materials.ledGreen:materials.phosphor;}else if(a.key==='sensor'||a.key==='servers'||a.key==='control'){a.mesh.material=state.power?(state.fault&&!state.repaired?materials.ledAmber:materials.ledGreen):materials.black;}else a.mesh.material=materials.ledGreen;}
-  for(const a of moving){if(a.key==='shutter'){a.mesh.position.y=state.controls.shutterClosed?1.10:1.48;continue;}a.mesh.rotation.z=a.key==='isolator'?(state.power?-.45:.45):a.key==='voltage'?(state.power?-.50+(state.controls?.voltageTrim||0)*.12:-1.25):a.key==='response'?(state.calibrated?.45:-.8):-.1;}
+  for(const a of moving){if(a.key==='shutter'){a.mesh.position.y=state.controls.shutterClosed?a.mesh.userData.closedY:a.mesh.userData.openY;continue;}a.mesh.rotation.z=a.key==='isolator'?(state.power?-.45:.45):a.key==='voltage'?(state.power?-.50+(state.controls?.voltageTrim||0)*.12:-1.25):a.key==='response'?(state.calibrated?.45:-.8):-.1;}
   iceUniforms.uTime.value=t;
  };
  return world;

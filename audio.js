@@ -1,6 +1,6 @@
-import {zoneAt,LAMP_DATA} from './layout.js?v=3.1';
-import {MachineryAudio} from './machinery-audio.js?v=3.1';
-import {UnderIceScore} from './score.js?v=3.1';
+import {zoneAt,LAMP_DATA} from './layout.js?v=3.1.1';
+import {MachineryAudio} from './machinery-audio.js?v=3.1.1';
+import {UnderIceScore} from './score.js?v=3.1.1';
 // Original environmental voices plus an original, state-dependent chamber score.
 // AudioContext is only created inside the user's ENTRAR gesture.
 export class Atmosphere {

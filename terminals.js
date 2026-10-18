@@ -1,6 +1,6 @@
 import * as T from './three.module.min.js';
-import {lineBlocked} from './station.js?v=3.1';
-import {consoleContent} from './console-content.js?v=3.1';
+import {lineBlocked} from './station.js?v=3.1.1';
+import {consoleContent} from './console-content.js?v=3.1.1';
 const W=512,H=336,GREEN='#8caa79',DIM='#51664c',AMBER='#b5a474';
 const clock=s=>`${String(Math.floor(s/60)).padStart(2,'0')}:${String(Math.floor(s%60)).padStart(2,'0')}`;
 const wrap=(ctx,text,x,y,max=468,line=22)=>{let row='';for(const word of text.split(' ')){if(ctx.measureText(row+word).width>max&&row){ctx.fillText(row,x,y);y+=line;row='';}row+=word+' ';}if(row){ctx.fillText(row,x,y);y+=line;}return y;};

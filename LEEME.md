@@ -1,16 +1,30 @@
-# UMBRAL · Versión 3.1
+# UMBRAL · Versión 3.1.1
 
 Revisión del UMBRAL V3 existente. Conserva las ocho salas, las trece conexiones, las texturas originales, el movimiento, los ajustes y la campaña de doce misiones. Esta entrega contiene **53 archivos sueltos**, preparados para reemplazarse y añadirse en tu repositorio actual.
 
 ## Subida manual desde iPhone
 
-1. Toca **UMBRAL-v3.1-GitHub-Pages.zip** en Archivos para descomprimirlo.
+1. Toca **UMBRAL-v3.1.1-Correcciones.zip** en Archivos para descomprimirlo.
 2. En tu repositorio de UMBRAL, abre **Add file → Upload files**.
 3. Sube **los 53 archivos de dentro**, al mismo nivel que el `index.html` actual. Reemplaza los nombres existentes y añade los nuevos. No subas el ZIP cerrado ni una carpeta adicional.
 4. Confirma con **Commit changes** y espera a que termine la publicación de Pages.
-5. Abre tu dirección habitual. El menú debe mostrar **V 3.1**. Si sigue mostrando V3.0, recarga cuando termine la publicación.
+5. Abre tu dirección habitual. El menú debe mostrar **V 3.1.1**. Si sigue mostrando V3.0 o V3.1, recarga cuando termine la publicación.
 
 Conserva tu configuración actual de Pages. Si todavía no está activada: **Settings → Pages → Deploy from a branch → main → /(root) → Save**. No necesitas instalar dependencias, compilar ni abrir otro repositorio. La vista previa de HTML en Archivos no ejecuta el juego; usa la dirección HTTPS de Pages.
+
+## Corrección 3.1.1: cristal y banco de Calibración
+
+Se corrigió un fallo real del shader del hielo: una variable utilizaba una palabra reservada en GLSL ES, el lenguaje de WebGL 2. El navegador rechazaba todo el efecto; quedaba visible el fondo verdoso y tampoco podían dibujarse los destellos. La anterior comprobación con OpenGL de escritorio no detectaba esa incompatibilidad.
+
+Esta entrega compila y enlaza el shader con GLSL ES 3.00, comprueba sus colores en una superficie RGBA8 y también prepara ese programa al cargar el juego. El hielo conserva azul marino casi negro abajo y una transición azul tenue arriba; un tramado fijo de píxeles suaviza los escalones de color sin animar el fondo.
+
+Los destellos ambientales **no requieren mapa, registro de turno, misiones ni autorización**. Puedes ir directamente al cristal al empezar. Mientras lo miras, aparecen a intervalos aleatorios de 2–6 segundos, duran 1.2 segundos y varían en posición, tamaño, intensidad y centro tenue. Las averías técnicas sí siguen esperando a que recojas el mapa. El análisis científico mantiene sus requisitos de campaña.
+
+El banco óptico de la sala 5 tiene una bancada atornillada, apoyos para la cámara, bridas y guías continuas que retienen el obturador tanto abierto como cerrado. El controlador ocupa un lateral y se retiraron los objetos de la mesa que interferían con el conjunto. Sus mandos y la calibración siguen funcionando con los mismos estados.
+
+Comprobación específica: una partida nueva sin mapa ni registro de turno genera destellos antes de avanzar la misión 1; las averías permanecen desactivadas. Se verificaron los controles, la calibración, las colisiones y el recorrido del obturador. No es una prueba en Safari físico: se usaron el código del juego, geometría real y el compilador OpenGL ES de Mesa.
+
+Conserva el guardado anterior; no necesitas reiniciar el turno para aplicar la corrección visual. Para comprobar expresamente el recorrido sin plano, puedes iniciar un turno nuevo desde el menú.
 
 ## Cambios de esta revisión
 
@@ -35,7 +49,7 @@ Conserva tu configuración actual de Pages. Si todavía no está activada: **Set
 
 ENTRAR activa el audio con el gesto exigido por el navegador. Cambiar de aplicación pausa. El almacenamiento local conserva posición, misiones, averías y eventos cada cinco segundos y al interactuar o pausar, si el navegador lo permite.
 
-**V3.1 continúa tu guardado de V3 y mantiene tus ajustes.** Los controles nuevos reciben valores compatibles con el progreso anterior. VOLVER AL PUNTO INICIAL conserva el progreso; REINICIAR EL TURNO COMPLETO comienza otra campaña. No hace falta reiniciar para ver el hielo, los destellos o la nueva interfaz.
+**V3.1.1 continúa tu guardado de V3/V3.1 y mantiene tus ajustes.** Los controles nuevos reciben valores compatibles con el progreso anterior. VOLVER AL PUNTO INICIAL conserva el progreso; REINICIAR EL TURNO COMPLETO comienza otra campaña. No hace falta reiniciar para ver el hielo, los destellos o la nueva interfaz.
 
 ## Primer turno — consulta si te atascas
 

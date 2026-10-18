@@ -1,16 +1,16 @@
 import * as T from './three.module.min.js';
-import {TEX,START,buildStation} from './station.js?v=3.1';
-import {zoneAt,WINDOW,LAMP_DATA} from './layout.js?v=3.1';
-import {Missions,SAVE_KEY} from './missions.js?v=3.1';
-import {Terminals} from './terminals.js?v=3.1';
-import {movePlayer,resolvePosition} from './physics.js?v=3.1';
-import {Input} from './input.js?v=3.1';
-import {Atmosphere} from './audio.js?v=3.1';
+import {TEX,START,buildStation} from './station.js?v=3.1.1';
+import {zoneAt,WINDOW,LAMP_DATA} from './layout.js?v=3.1.1';
+import {Missions,SAVE_KEY} from './missions.js?v=3.1.1';
+import {Terminals} from './terminals.js?v=3.1.1';
+import {movePlayer,resolvePosition} from './physics.js?v=3.1.1';
+import {Input} from './input.js?v=3.1.1';
+import {Atmosphere} from './audio.js?v=3.1.1';
 
-import {Instruments} from './instruments.js?v=3.1';
-import {PortableMap} from './map.js?v=3.1';
-import {IceActivity,visibleIceSpot} from './ice.js?v=3.1';
-import {MissionUI,NoticeQueue} from './mission-ui.js?v=3.1';
+import {Instruments} from './instruments.js?v=3.1.1';
+import {PortableMap} from './map.js?v=3.1.1';
+import {IceActivity,visibleIceSpot} from './ice.js?v=3.1.1';
+import {MissionUI,NoticeQueue} from './mission-ui.js?v=3.1.1';
 const iceActivity=new IceActivity();
 const $=s=>document.querySelector(s),canvas=$('#view');
 const settings={volume:58,brightness:105,sensitivity:95,quality:'auto',bob:!matchMedia('(prefers-reduced-motion:reduce)').matches,flicker:!matchMedia('(prefers-reduced-motion:reduce)').matches};
@@ -54,7 +54,7 @@ for(const name of Object.keys(settings)){
     if(name==='quality'){adaptive=1;resize();}saveSettings();
   });
 }
-function texture(name){return new Promise((resolve,reject)=>new T.TextureLoader().load(new URL('./'+name+'.png?v=3.1',import.meta.url).href,t=>{
+function texture(name){return new Promise((resolve,reject)=>new T.TextureLoader().load(new URL('./'+name+'.png?v=3.1.1',import.meta.url).href,t=>{
   t.colorSpace=T.SRGBColorSpace;t.magFilter=T.NearestFilter;t.minFilter=T.NearestMipmapNearestFilter;t.generateMipmaps=true;
   t.wrapS=t.wrapT=['decals','signs','station-map','glass'].includes(name)?T.ClampToEdgeWrapping:T.RepeatWrapping;t.anisotropy=1;resolve(t);
 },undefined,()=>reject(Error('No se encontró '+name+'.png'))));}
@@ -142,6 +142,9 @@ async function boot(){
     window.addEventListener('keydown',e=>{if(!playing||e.repeat||e.defaultPrevented||portableMap.active||missionUI.active)return;if(e.code==='KeyE'&&!terminals.active&&!instruments.active){e.preventDefault();operate();}});
     if(input.touch)$('#controls').innerHTML='IZQUIERDA &nbsp; CAMINAR<br>DERECHA &nbsp; MIRAR &nbsp; · &nbsp; TOCA OPERAR';
     resize();window.addEventListener('resize',resize);window.visualViewport?.addEventListener('resize',resize);
+    // Compile the remote ice effect while loading, even though room 8 is hidden.
+    // Shader failures must be detected here, not silently discovered at the window.
+    renderer.compile(world.ice,camera,scene);
     renderer.shadowMap.needsUpdate=true;updateCamera(0);render(0);
     if(renderer.info.programs?.some(p=>p.diagnostics?.runnable===false))throw Error('No se pudo compilar la imagen 3D.');
     $('#enter').disabled=false;$('#enter-label').textContent='ENTRAR';$('#load-status').textContent='';window.umbralReady=true;$('#curtain').classList.add('clear');

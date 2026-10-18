@@ -1,4 +1,4 @@
-import {ZONES,ROOMS,PORTALS} from './layout.js?v=3.1';
+import {ZONES,ROOMS,PORTALS} from './layout.js?v=3.1.1';
 export const MAP_TRANSFORM={x:45,y:63,scale:16};
 export const mapPoint=(x,z)=>({x:MAP_TRANSFORM.x+x*16,y:MAP_TRANSFORM.y+z*16});
 export function drawPlan(c){
